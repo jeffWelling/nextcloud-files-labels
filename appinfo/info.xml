@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--
+  - SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+  - SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <id>files_labels</id>
+    <name>File Labels</name>
+    <summary>User-specific labels for files with sensitive content hiding</summary>
+    <description><![CDATA[
+This app allows users to attach key-value labels to files. Labels are user-specific,
+meaning each user manages their own labels independently.
+
+Key features:
+- User-specific labels (not shared between users)
+- Key-value pairs for flexible metadata
+- Hide previews for files labeled as sensitive (solid placeholder, no data leakage)
+- WebDAV integration for client sync
+- OCS API for programmatic access
+
+Example use cases:
+- Mark files as sensitive to hide previews entirely
+- Personal organization (project=work, status=todo)
+- Ratings and reviews
+- Custom workflows
+]]></description>
+    <version>0.1.0</version>
+    <licence>agpl</licence>
+    <author mail="jeff@example.com">Jeff</author>
+    <namespace>FilesLabels</namespace>
+    <category>files</category>
+    <category>organization</category>
+    <bugs>https://github.com/nextcloud/files_labels/issues</bugs>
+    <dependencies>
+        <php min-version="8.1"/>
+        <nextcloud min-version="28" max-version="31"/>
+    </dependencies>
+    <scripts>
+        <script>js/files_labels-main.js</script>
+    </scripts>
+</info>

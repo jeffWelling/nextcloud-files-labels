@@ -1,0 +1,40 @@
+{
+  "name": "files_labels",
+  "version": "0.1.0",
+  "description": "User-specific labels for files with sensitive content hiding",
+  "main": "src/main.js",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "watch": "webpack --mode development --watch"
+  },
+  "dependencies": {
+    "@nextcloud/auth": "^2.4.0",
+    "@nextcloud/axios": "^2.5.1",
+    "@nextcloud/dialogs": "^5.3.7",
+    "@nextcloud/event-bus": "^3.3.1",
+    "@nextcloud/router": "^3.0.1",
+    "@nextcloud/vue": "^8.19.0",
+    "vue": "^2.7.16",
+    "vue-material-design-icons": "^5.3.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "babel-loader": "^9.1.3",
+    "css-loader": "^7.1.2",
+    "sass": "^1.77.8",
+    "sass-loader": "^16.0.0",
+    "style-loader": "^4.0.0",
+    "vue-loader": "^15.11.1",
+    "vue-template-compiler": "^2.7.16",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "license": "AGPL-3.0-or-later"
+}
