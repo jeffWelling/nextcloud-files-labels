@@ -92,6 +92,45 @@ class LabelsController extends OCSController {
 	}
 
 	/**
+	 * Get labels for multiple files (bulk GET)
+	 *
+	 * @return DataResponse Map of fileId => labels
+	 */
+	#[NoAdminRequired]
+	public function bulk(): DataResponse {
+		$fileIds = $this->request->getParam('fileIds', []);
+
+		if (!is_array($fileIds)) {
+			return new DataResponse(['error' => 'fileIds must be an array'], Http::STATUS_BAD_REQUEST);
+		}
+
+		if (empty($fileIds)) {
+			return new DataResponse([]);
+		}
+
+		// Limit to prevent abuse
+		if (count($fileIds) > 1000) {
+			return new DataResponse(['error' => 'Too many file IDs (max 1000)'], Http::STATUS_BAD_REQUEST);
+		}
+
+		// Convert to integers
+		$fileIds = array_map('intval', $fileIds);
+
+		$labelsMap = $this->labelsService->getLabelsForFiles($fileIds);
+
+		// Convert Label objects to key-value maps
+		$result = [];
+		foreach ($labelsMap as $fileId => $labels) {
+			$result[$fileId] = [];
+			foreach ($labels as $label) {
+				$result[$fileId][$label->getLabelKey()] = $label->getLabelValue();
+			}
+		}
+
+		return new DataResponse($result);
+	}
+
+	/**
 	 * Bulk set labels on a file
 	 *
 	 * @param int $fileId The file ID

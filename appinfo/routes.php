@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 return [
 	'ocs' => [
+		// Bulk get labels for multiple files
+		['name' => 'Labels#bulk', 'url' => '/api/v1/labels/bulk', 'verb' => 'POST'],
 		// Get all labels for a file
 		['name' => 'Labels#index', 'url' => '/api/v1/labels/{fileId}', 'verb' => 'GET'],
 		// Set a single label
