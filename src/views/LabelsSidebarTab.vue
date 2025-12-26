@@ -90,6 +90,7 @@ import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { translate as t } from '@nextcloud/l10n'
+import { emit } from '@nextcloud/event-bus'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcActions from '@nextcloud/vue/dist/Components/NcActions.js'
 import NcActionButton from '@nextcloud/vue/dist/Components/NcActionButton.js'
@@ -194,6 +195,12 @@ export default {
 					[this.newKey]: this.newValue,
 				}
 
+				// Emit event for other apps (e.g., files_spoilers)
+				emit('files_labels:label-changed', {
+					fileId: this.fileId,
+					labels: { ...this.labels },
+				})
+
 				// Clear form
 				this.newKey = ''
 				this.newValue = ''
@@ -227,6 +234,12 @@ export default {
 				const newLabels = { ...this.labels }
 				delete newLabels[key]
 				this.labels = newLabels
+
+				// Emit event for other apps (e.g., files_spoilers)
+				emit('files_labels:label-changed', {
+					fileId: this.fileId,
+					labels: { ...this.labels },
+				})
 
 				showSuccess(t('files_labels', 'Label deleted successfully'))
 			} catch (error) {
