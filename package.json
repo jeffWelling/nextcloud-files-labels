@@ -6,7 +6,11 @@
   "scripts": {
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",
-    "watch": "webpack --mode development --watch"
+    "watch": "webpack --mode development --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@nextcloud/auth": "^2.4.0",
@@ -21,11 +25,14 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^25.0.3",
     "babel-loader": "^9.1.3",
     "css-loader": "^7.1.2",
     "sass": "^1.77.8",
     "sass-loader": "^16.0.0",
     "style-loader": "^4.0.0",
+    "typescript": "^5.9.3",
     "vue-loader": "^15.11.1",
     "vue-template-compiler": "^2.7.16",
     "webpack": "^5.93.0",
