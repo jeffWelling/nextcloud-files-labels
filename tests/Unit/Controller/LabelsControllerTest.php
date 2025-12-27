@@ -340,4 +340,103 @@ class LabelsControllerTest extends TestCase {
 		$this->assertArrayHasKey('error', $data);
 		$this->assertEquals('Invalid key', $data['error']);
 	}
+
+	// ==================== bulk (GET multiple files) Tests ====================
+
+	public function testBulkSuccess(): void {
+		$fileIds = [123, 456, 789];
+
+		$label1 = new Label();
+		$label1->setLabelKey('key1');
+		$label1->setLabelValue('value1');
+
+		$label2 = new Label();
+		$label2->setLabelKey('key2');
+		$label2->setLabelValue('value2');
+
+		$this->request->method('getParam')
+			->with('fileIds', [])
+			->willReturn($fileIds);
+
+		$this->service->method('getLabelsForFiles')
+			->with($fileIds)
+			->willReturn([
+				123 => [$label1],
+				456 => [$label2],
+				789 => [],
+			]);
+
+		$response = $this->controller->bulk();
+
+		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
+
+		$data = $response->getData();
+		$this->assertArrayHasKey(123, $data);
+		$this->assertArrayHasKey(456, $data);
+		$this->assertArrayHasKey(789, $data);
+		$this->assertEquals(['key1' => 'value1'], $data[123]);
+		$this->assertEquals(['key2' => 'value2'], $data[456]);
+		$this->assertEquals([], $data[789]);
+	}
+
+	public function testBulkEmptyFileIds(): void {
+		$this->request->method('getParam')
+			->with('fileIds', [])
+			->willReturn([]);
+
+		$response = $this->controller->bulk();
+
+		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
+
+		$data = $response->getData();
+		$this->assertIsArray($data);
+		$this->assertEmpty($data);
+	}
+
+	public function testBulkInvalidFileIdsType(): void {
+		$this->request->method('getParam')
+			->with('fileIds', [])
+			->willReturn('not an array');
+
+		$response = $this->controller->bulk();
+
+		$this->assertEquals(Http::STATUS_BAD_REQUEST, $response->getStatus());
+
+		$data = $response->getData();
+		$this->assertArrayHasKey('error', $data);
+		$this->assertEquals('fileIds must be an array', $data['error']);
+	}
+
+	public function testBulkTooManyFileIds(): void {
+		$fileIds = range(1, 1001); // 1001 IDs, exceeds limit
+
+		$this->request->method('getParam')
+			->with('fileIds', [])
+			->willReturn($fileIds);
+
+		$response = $this->controller->bulk();
+
+		$this->assertEquals(Http::STATUS_BAD_REQUEST, $response->getStatus());
+
+		$data = $response->getData();
+		$this->assertArrayHasKey('error', $data);
+		$this->assertEquals('Too many file IDs (max 1000)', $data['error']);
+	}
+
+	public function testBulkConvertsToIntegers(): void {
+		$fileIds = ['123', '456'];
+
+		$this->request->method('getParam')
+			->with('fileIds', [])
+			->willReturn($fileIds);
+
+		$this->service->expects($this->once())
+			->method('getLabelsForFiles')
+			->with([123, 456]) // Should be integers
+			->willReturn([]);
+
+		$response = $this->controller->bulk();
+
+		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
+	}
 }
