@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  - SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+  - SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -27,7 +27,7 @@ Example use cases:
 ]]></description>
     <version>0.2.0</version>
     <licence>agpl</licence>
-    <author mail="jeff@example.com">Jeff</author>
+    <author mail="real.jeff.welling@gmail.com">Jeff Welling</author>
     <namespace>FilesLabels</namespace>
     <category>files</category>
     <category>organization</category>
@@ -39,4 +39,7 @@ Example use cases:
     <scripts>
         <script>js/files_labels-main.js</script>
     </scripts>
+    <settings>
+        <admin>OCA\FilesLabels\Settings\Admin</admin>
+    </settings>
 </info>
