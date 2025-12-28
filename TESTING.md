@@ -46,8 +46,11 @@ php -f tests/lib/TestRunner.php apps/files_labels/tests/phpunit.xml
 # Unit tests only
 php -f tests/lib/TestRunner.php apps/files_labels/tests/phpunit.xml --testsuite unit
 
-# Integration tests only (when implemented)
+# Integration tests only
 php -f tests/lib/TestRunner.php apps/files_labels/tests/phpunit.xml --testsuite integration
+
+# Scalability benchmarks only
+php -f tests/lib/TestRunner.php apps/files_labels/tests/phpunit.xml --group scalability
 ```
 
 ### Run Specific Test Class
@@ -255,13 +258,131 @@ Tests verify:
 6. **Caching**: Cache hits, cache misses, preload optimization
 7. **Multiple nodes**: Files accessible through multiple paths
 
-## Integration Test Placeholders
+## Integration Tests
 
-The `tests/Integration/` directory is reserved for future integration tests that will:
-- Test actual database operations
-- Test file system integration
-- Test WebDAV protocol compliance
-- Test end-to-end workflows
+The `tests/Integration/` directory contains integration tests that run against a real database and file system within Nextcloud. These tests verify the full stack from service layer to database.
+
+See `tests/Integration/LabelsIntegrationTest.php` for comprehensive integration tests covering:
+- Basic CRUD operations
+- Multiple labels on files
+- Bulk operations
+- Search/filter operations
+- Validation rules
+- Special characters
+- Cleanup hooks
+- Database mapper operations
+
+## Scalability Benchmarks
+
+**Location**: `tests/Integration/ScalabilityBenchmarkTest.php`
+
+The scalability benchmark suite measures performance of label operations at various scales to identify bottlenecks and ensure the system can handle large numbers of labels.
+
+### Running Benchmarks
+
+```bash
+# Run only scalability benchmarks
+cd /path/to/nextcloud
+php -f tests/lib/TestRunner.php apps/files_labels/tests/phpunit.xml --group scalability
+```
+
+These tests are marked with `@group scalability` so they don't run in normal test suites.
+
+### Test Scales
+
+Benchmarks measure operations at the following scales:
+- 10 labels
+- 100 labels
+- 1,000 labels
+- 10,000 labels
+
+### Benchmark Tests
+
+1. **Add Labels** (`testBenchmarkAddLabels`)
+   - Measures sequential insertion of labels onto a file
+   - Tests single-label set operation performance
+   - Reports time, memory, and throughput
+
+2. **Fetch Labels** (`testBenchmarkFetchLabels`)
+   - Measures retrieval of all labels for a file
+   - Tests query performance at scale
+   - Reports time, memory, and throughput
+
+3. **Bulk Fetch** (`testBenchmarkBulkFetch`)
+   - Measures bulk retrieval for multiple files
+   - Tests with 100 files having 10 labels each (1,000 total)
+   - Tests with 100 files having 100 labels each (10,000 total)
+   - Reports time, memory, and throughput
+
+4. **Delete Labels** (`testBenchmarkDeleteLabels`)
+   - Measures sequential deletion of labels
+   - Tests cleanup performance
+   - Reports time, memory, and throughput
+
+5. **Bulk Set** (`testBenchmarkBulkSet`)
+   - Measures batch insertion of multiple labels at once
+   - Tests `setLabels()` bulk operation
+   - Reports time, memory, and throughput
+
+6. **Update Labels** (`testBenchmarkUpdateLabels`)
+   - Measures modification of existing labels
+   - Tests update vs insert performance
+   - Reports time, memory, and throughput
+
+7. **Find by Label** (`testBenchmarkFindByLabel`)
+   - Measures search performance across files
+   - Tests index usage and query optimization
+   - Scales: 10, 100, 1,000 files
+   - Reports time, memory, and throughput
+
+8. **Stress Test** (`testStressSingleFileMaxLabels`)
+   - Single file with 50,000 labels
+   - Identifies breaking points and memory limits
+   - Includes progress indicators
+   - Comprehensive verification
+
+### Benchmark Output
+
+Results are displayed in a formatted table:
+
+```
+========================================
+  SCALABILITY BENCHMARK TEST RESULTS
+========================================
+
+Scale        | Operation       | Time (ms)    | Memory (MB)  | Labels/sec
+--------------------------------------------------------------------------------
+10           | Add             | 25.43        | 0.12         | 393
+100          | Add             | 234.56       | 1.23         | 426
+1,000        | Add             | 2,345.67     | 12.34        | 426
+10,000       | Add             | 23,456.78    | 123.45       | 426
+...
+```
+
+### Metrics Collected
+
+For each operation at each scale:
+- **Time (ms)**: Total time in milliseconds
+- **Memory (MB)**: Memory used in megabytes
+- **Labels/sec**: Throughput (labels per second)
+
+### Performance Baselines
+
+Expected performance characteristics:
+- **Add/Update**: ~400-600 labels/sec (database-bound)
+- **Fetch**: Sub-millisecond for <1,000 labels
+- **Bulk Fetch**: Optimized with single query per file set
+- **Delete**: Similar to add performance
+- **Find by Label**: Index-optimized, <100ms for 1,000 files
+
+### Use Cases
+
+Run scalability benchmarks to:
+- Identify performance regressions
+- Validate optimizations
+- Establish performance baselines
+- Capacity planning
+- Database tuning validation
 
 ## Code Quality Standards
 
