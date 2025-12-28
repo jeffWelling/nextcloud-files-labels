@@ -25,7 +25,7 @@ Example use cases:
 - Ratings and reviews
 - Custom workflows
 ]]></description>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <licence>agpl</licence>
     <author mail="jeff@example.com">Jeff</author>
     <namespace>FilesLabels</namespace>
