@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+ * SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -12,16 +12,49 @@ namespace OCA\FilesLabels\Service;
 use OCA\FilesLabels\Db\Label;
 use OCA\FilesLabels\Db\LabelMapper;
 use OCP\Files\NotPermittedException;
+use OCP\IConfig;
+use Psr\Log\LoggerInterface;
 
+/**
+ * Service for managing file labels.
+ *
+ * Provides CRUD operations for user-specific file labels with:
+ * - Access control validation
+ * - Input validation
+ * - Rate limiting
+ * - Transactional bulk operations
+ * - Structured logging
+ */
 class LabelsService {
+	private const APP_ID = 'files_labels';
+
 	// Valid label key pattern: lowercase alphanumeric, dots, dashes, underscores, colons
 	private const KEY_PATTERN = '/^[a-z0-9_:.-]+$/';
-	private const MAX_VALUE_LENGTH = 4096;
+	private const MAX_KEY_LENGTH = 255;
+	// Value length limit imposed for UI aesthetics (sidebar display)
+	private const MAX_VALUE_LENGTH = 255;
+
+	// Rate limiting defaults
+	private const DEFAULT_MAX_LABELS_PER_USER = 10000;
+	private const CONFIG_KEY_MAX_LABELS = 'max_labels_per_user';
 
 	public function __construct(
 		private LabelMapper $mapper,
 		private AccessChecker $accessChecker,
+		private LoggerInterface $logger,
+		private IConfig $config,
 	) {
+	}
+
+	/**
+	 * Get the maximum labels per user (configurable by admin)
+	 */
+	public function getMaxLabelsPerUser(): int {
+		return (int)$this->config->getAppValue(
+			self::APP_ID,
+			self::CONFIG_KEY_MAX_LABELS,
+			(string)self::DEFAULT_MAX_LABELS_PER_USER
+		);
 	}
 
 	/**
@@ -40,7 +73,16 @@ class LabelsService {
 			throw new NotPermittedException('Cannot access file');
 		}
 
-		return $this->mapper->findByFileAndUser($fileId, $userId);
+		$labels = $this->mapper->findByFileAndUser($fileId, $userId);
+
+		$this->logger->debug('Retrieved labels for file', [
+			'app' => self::APP_ID,
+			'fileId' => $fileId,
+			'userId' => $userId,
+			'count' => count($labels),
+		]);
+
+		return $labels;
 	}
 
 	/**
@@ -61,7 +103,16 @@ class LabelsService {
 			return [];
 		}
 
-		return $this->mapper->findByFilesAndUser($accessibleIds, $userId);
+		$labelsMap = $this->mapper->findByFilesAndUser($accessibleIds, $userId);
+
+		$this->logger->debug('Bulk retrieved labels for files', [
+			'app' => self::APP_ID,
+			'userId' => $userId,
+			'requestedCount' => count($fileIds),
+			'accessibleCount' => count($accessibleIds),
+		]);
+
+		return $labelsMap;
 	}
 
 	/**
@@ -69,6 +120,7 @@ class LabelsService {
 	 *
 	 * @throws NotPermittedException if user cannot write to file
 	 * @throws \InvalidArgumentException if key or value is invalid
+	 * @throws \OverflowException if user has exceeded rate limit
 	 */
 	public function setLabel(int $fileId, string $key, string $value): Label {
 		$this->validateKey($key);
@@ -83,16 +135,33 @@ class LabelsService {
 			throw new NotPermittedException('Cannot modify file');
 		}
 
-		return $this->mapper->setLabel($fileId, $userId, $key, $value);
+		// Check rate limit (only for new labels)
+		$existing = $this->mapper->findByFileUserAndKey($fileId, $userId, $key);
+		if ($existing === null) {
+			$this->checkRateLimit($userId);
+		}
+
+		$label = $this->mapper->setLabel($fileId, $userId, $key, $value);
+
+		$this->logger->debug('Label set', [
+			'app' => self::APP_ID,
+			'fileId' => $fileId,
+			'userId' => $userId,
+			'key' => $key,
+			'isNew' => $existing === null,
+		]);
+
+		return $label;
 	}
 
 	/**
-	 * Set multiple labels on a file (bulk operation)
+	 * Set multiple labels on a file (bulk operation with transaction)
 	 *
 	 * @param array<string, string> $labels Map of key => value
 	 * @return Label[]
 	 * @throws NotPermittedException if user cannot write to file
 	 * @throws \InvalidArgumentException if any key or value is invalid
+	 * @throws \OverflowException if user would exceed rate limit
 	 */
 	public function setLabels(int $fileId, array $labels): array {
 		// Validate all first
@@ -110,10 +179,52 @@ class LabelsService {
 			throw new NotPermittedException('Cannot modify file');
 		}
 
-		$result = [];
-		foreach ($labels as $key => $value) {
-			$result[] = $this->mapper->setLabel($fileId, $userId, $key, $value);
+		// Count how many are truly new (not updates)
+		$existingLabels = $this->mapper->findByFileAndUser($fileId, $userId);
+		$existingKeys = [];
+		foreach ($existingLabels as $label) {
+			$existingKeys[$label->getLabelKey()] = true;
 		}
+		$newCount = 0;
+		foreach (array_keys($labels) as $key) {
+			if (!isset($existingKeys[$key])) {
+				$newCount++;
+			}
+		}
+
+		// Check rate limit for new labels
+		if ($newCount > 0) {
+			$this->checkRateLimit($userId, $newCount);
+		}
+
+		// Execute in transaction for atomicity
+		$db = $this->mapper->getConnection();
+		$result = [];
+
+		$db->beginTransaction();
+		try {
+			foreach ($labels as $key => $value) {
+				$result[] = $this->mapper->setLabel($fileId, $userId, $key, $value);
+			}
+			$db->commit();
+		} catch (\Exception $e) {
+			$db->rollBack();
+			$this->logger->error('Bulk setLabels failed, rolled back', [
+				'app' => self::APP_ID,
+				'fileId' => $fileId,
+				'userId' => $userId,
+				'error' => $e->getMessage(),
+			]);
+			throw $e;
+		}
+
+		$this->logger->info('Bulk labels set', [
+			'app' => self::APP_ID,
+			'fileId' => $fileId,
+			'userId' => $userId,
+			'count' => count($labels),
+			'newCount' => $newCount,
+		]);
 
 		return $result;
 	}
@@ -133,7 +244,17 @@ class LabelsService {
 			throw new NotPermittedException('Cannot modify file');
 		}
 
-		return $this->mapper->deleteLabel($fileId, $userId, $key);
+		$deleted = $this->mapper->deleteLabel($fileId, $userId, $key);
+
+		$this->logger->debug('Label deleted', [
+			'app' => self::APP_ID,
+			'fileId' => $fileId,
+			'userId' => $userId,
+			'key' => $key,
+			'success' => $deleted,
+		]);
+
+		return $deleted;
 	}
 
 	/**
@@ -150,7 +271,18 @@ class LabelsService {
 		$fileIds = $this->mapper->findFilesByLabel($userId, $key, $value);
 
 		// Filter to accessible files
-		return $this->accessChecker->filterAccessible($fileIds);
+		$accessible = $this->accessChecker->filterAccessible($fileIds);
+
+		$this->logger->debug('Found files by label', [
+			'app' => self::APP_ID,
+			'userId' => $userId,
+			'key' => $key,
+			'hasValue' => $value !== null,
+			'foundCount' => count($fileIds),
+			'accessibleCount' => count($accessible),
+		]);
+
+		return $accessible;
 	}
 
 	/**
@@ -179,14 +311,44 @@ class LabelsService {
 	}
 
 	/**
+	 * Get current label count for a user
+	 */
+	public function getLabelCount(string $userId): int {
+		return $this->mapper->countByUser($userId);
+	}
+
+	/**
+	 * Check if user would exceed rate limit
+	 *
+	 * @throws \OverflowException if limit would be exceeded
+	 */
+	private function checkRateLimit(string $userId, int $newLabels = 1): void {
+		$maxLabels = $this->getMaxLabelsPerUser();
+		$currentCount = $this->mapper->countByUser($userId);
+
+		if ($currentCount + $newLabels > $maxLabels) {
+			$this->logger->warning('Rate limit exceeded', [
+				'app' => self::APP_ID,
+				'userId' => $userId,
+				'currentCount' => $currentCount,
+				'newLabels' => $newLabels,
+				'maxLabels' => $maxLabels,
+			]);
+			throw new \OverflowException(
+				"Label limit exceeded. You have $currentCount labels, maximum is $maxLabels."
+			);
+		}
+	}
+
+	/**
 	 * Validate label key format
 	 */
 	private function validateKey(string $key): void {
 		if (strlen($key) === 0) {
 			throw new \InvalidArgumentException('Label key cannot be empty');
 		}
-		if (strlen($key) > 64) {
-			throw new \InvalidArgumentException('Label key cannot exceed 64 characters');
+		if (strlen($key) > self::MAX_KEY_LENGTH) {
+			throw new \InvalidArgumentException('Label key cannot exceed ' . self::MAX_KEY_LENGTH . ' characters');
 		}
 		if (!preg_match(self::KEY_PATTERN, $key)) {
 			throw new \InvalidArgumentException('Label key must match pattern [a-z0-9_:.-]+');

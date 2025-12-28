@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+ * SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -68,6 +68,8 @@ class LabelsController extends OCSController {
 			return new DataResponse(['error' => 'File not found'], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (\OverflowException $e) {
+			return new DataResponse(['error' => $e->getMessage()], Http::STATUS_TOO_MANY_REQUESTS);
 		}
 	}
 
@@ -158,6 +160,8 @@ class LabelsController extends OCSController {
 			return new DataResponse(['error' => 'File not found'], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['error' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (\OverflowException $e) {
+			return new DataResponse(['error' => $e->getMessage()], Http::STATUS_TOO_MANY_REQUESTS);
 		}
 	}
 }
