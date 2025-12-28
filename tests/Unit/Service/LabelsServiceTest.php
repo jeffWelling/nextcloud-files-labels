@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+ * SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -14,20 +14,53 @@ use OCA\FilesLabels\Db\LabelMapper;
 use OCA\FilesLabels\Service\AccessChecker;
 use OCA\FilesLabels\Service\LabelsService;
 use OCP\Files\NotPermittedException;
+use OCP\IConfig;
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class LabelsServiceTest extends TestCase {
 	private LabelsService $service;
 	private LabelMapper $mapper;
 	private AccessChecker $accessChecker;
+	private LoggerInterface $logger;
+	private IConfig $config;
 
 	protected function setUp(): void {
 		parent::setUp();
 
 		$this->mapper = $this->createMock(LabelMapper::class);
 		$this->accessChecker = $this->createMock(AccessChecker::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
+		$this->config = $this->createMock(IConfig::class);
 
-		$this->service = new LabelsService($this->mapper, $this->accessChecker);
+		// Default config: 10000 labels per user
+		$this->config->method('getAppValue')
+			->with('files_labels', 'max_labels_per_user', '10000')
+			->willReturn('10000');
+
+		$this->service = new LabelsService(
+			$this->mapper,
+			$this->accessChecker,
+			$this->logger,
+			$this->config
+		);
+	}
+
+	/**
+	 * Helper to create service with custom config
+	 */
+	private function createServiceWithMaxLabels(int $maxLabels): LabelsService {
+		$config = $this->createMock(IConfig::class);
+		$config->method('getAppValue')
+			->with('files_labels', 'max_labels_per_user', '10000')
+			->willReturn((string)$maxLabels);
+
+		return new LabelsService(
+			$this->mapper,
+			$this->accessChecker,
+			$this->logger,
+			$config
+		);
 	}
 
 	public function testGetLabelsForFileSuccess(): void {
@@ -591,5 +624,366 @@ class LabelsServiceTest extends TestCase {
 		$result = $this->service->hasLabel($fileId, $key, null);
 
 		$this->assertTrue($result);
+	}
+
+	// ==========================================
+	// Rate Limiting Tests
+	// ==========================================
+
+	public function testGetMaxLabelsPerUserReturnsDefault(): void {
+		$result = $this->service->getMaxLabelsPerUser();
+		$this->assertEquals(10000, $result);
+	}
+
+	public function testGetMaxLabelsPerUserReturnsConfiguredValue(): void {
+		$service = $this->createServiceWithMaxLabels(5000);
+		$result = $service->getMaxLabelsPerUser();
+		$this->assertEquals(5000, $result);
+	}
+
+	public function testGetMaxLabelsPerUserReturnsSmallValue(): void {
+		$service = $this->createServiceWithMaxLabels(5);
+		$result = $service->getMaxLabelsPerUser();
+		$this->assertEquals(5, $result);
+	}
+
+	public function testGetLabelCountReturnsMapperCount(): void {
+		$userId = 'testuser';
+
+		$this->mapper->method('countByUser')
+			->with($userId)
+			->willReturn(42);
+
+		$result = $this->service->getLabelCount($userId);
+		$this->assertEquals(42, $result);
+	}
+
+	public function testGetLabelCountReturnsZeroForNewUser(): void {
+		$userId = 'newuser';
+
+		$this->mapper->method('countByUser')
+			->with($userId)
+			->willReturn(0);
+
+		$result = $this->service->getLabelCount($userId);
+		$this->assertEquals(0, $result);
+	}
+
+	// ==========================================
+	// setLabel() Rate Limit Tests
+	// ==========================================
+
+	public function testSetLabelAllowedWhenUnderLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$label = new Label();
+		$label->setLabelKey('newkey');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null); // New label
+		$this->mapper->method('countByUser')->willReturn(9999); // Under 10000 limit
+		$this->mapper->method('setLabel')->willReturn($label);
+
+		// Should not throw
+		$result = $this->service->setLabel($fileId, 'newkey', 'value');
+		$this->assertEquals('newkey', $result->getLabelKey());
+	}
+
+	public function testSetLabelThrowsOverflowAtExactLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null); // New label
+		$this->mapper->method('countByUser')->willReturn(10000); // At limit
+
+		$this->expectException(\OverflowException::class);
+		$this->expectExceptionMessage('Label limit exceeded');
+
+		$this->service->setLabel($fileId, 'newkey', 'value');
+	}
+
+	public function testSetLabelThrowsOverflowAboveLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null); // New label
+		$this->mapper->method('countByUser')->willReturn(15000); // Above limit
+
+		$this->expectException(\OverflowException::class);
+
+		$this->service->setLabel($fileId, 'newkey', 'value');
+	}
+
+	public function testSetLabelUpdatingExistingDoesNotCheckRateLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$existingLabel = new Label();
+		$existingLabel->setLabelKey('existingkey');
+
+		$updatedLabel = new Label();
+		$updatedLabel->setLabelKey('existingkey');
+		$updatedLabel->setLabelValue('new value');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn($existingLabel); // Existing!
+		$this->mapper->method('setLabel')->willReturn($updatedLabel);
+
+		// countByUser should NOT be called for updates
+		$this->mapper->expects($this->never())->method('countByUser');
+
+		$result = $this->service->setLabel($fileId, 'existingkey', 'new value');
+		$this->assertEquals('existingkey', $result->getLabelKey());
+	}
+
+	public function testSetLabelWithCustomLimitOf5AllowsLabel5(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+		$service = $this->createServiceWithMaxLabels(5);
+
+		$label = new Label();
+		$label->setLabelKey('label5');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(4); // Has 4, adding 5th
+		$this->mapper->method('setLabel')->willReturn($label);
+
+		// Should succeed - 4 + 1 = 5, exactly at limit
+		$result = $service->setLabel($fileId, 'label5', 'value');
+		$this->assertEquals('label5', $result->getLabelKey());
+	}
+
+	public function testSetLabelWithCustomLimitOf5RejectsLabel6(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+		$service = $this->createServiceWithMaxLabels(5);
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(5); // Already has 5
+
+		$this->expectException(\OverflowException::class);
+		$this->expectExceptionMessage('Label limit exceeded. You have 5 labels, maximum is 5.');
+
+		$service->setLabel($fileId, 'label6', 'value');
+	}
+
+	// ==========================================
+	// setLabels() Bulk Rate Limit Tests
+	// ==========================================
+
+	public function testSetLabelsBulkAllowedWhenUnderLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$label1 = new Label();
+		$label1->setLabelKey('key1');
+		$label2 = new Label();
+		$label2->setLabelKey('key2');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileAndUser')->willReturn([]); // No existing
+		$this->mapper->method('countByUser')->willReturn(9998); // Has 9998, adding 2 = 10000
+		$this->mapper->method('setLabel')->willReturnOnConsecutiveCalls($label1, $label2);
+
+		// Mock database transaction
+		$db = $this->createMock(\OCP\IDBConnection::class);
+		$this->mapper->method('getConnection')->willReturn($db);
+
+		$result = $this->service->setLabels($fileId, ['key1' => 'v1', 'key2' => 'v2']);
+		$this->assertCount(2, $result);
+	}
+
+	public function testSetLabelsBulkThrowsWhenExceedsLimit(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileAndUser')->willReturn([]); // No existing
+		$this->mapper->method('countByUser')->willReturn(9999); // Has 9999, adding 2 = 10001
+
+		$this->expectException(\OverflowException::class);
+		$this->expectExceptionMessage('Label limit exceeded. You have 9999 labels, maximum is 10000.');
+
+		$this->service->setLabels($fileId, ['key1' => 'v1', 'key2' => 'v2']);
+	}
+
+	public function testSetLabelsBulkCountsOnlyNewLabels(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		// Existing label
+		$existing = new Label();
+		$existing->setLabelKey('existing');
+
+		$label1 = new Label();
+		$label1->setLabelKey('existing');
+		$label2 = new Label();
+		$label2->setLabelKey('newkey');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileAndUser')->willReturn([$existing]); // Has 'existing'
+		$this->mapper->method('countByUser')->willReturn(9999); // Has 9999
+		$this->mapper->method('setLabel')->willReturnOnConsecutiveCalls($label1, $label2);
+
+		// Mock database transaction
+		$db = $this->createMock(\OCP\IDBConnection::class);
+		$this->mapper->method('getConnection')->willReturn($db);
+
+		// Should succeed: updating 'existing' (doesn't count) + adding 'newkey' (1 new)
+		// 9999 + 1 = 10000, exactly at limit
+		$result = $this->service->setLabels($fileId, [
+			'existing' => 'updated',
+			'newkey' => 'value',
+		]);
+		$this->assertCount(2, $result);
+	}
+
+	public function testSetLabelsBulkWithCustomLimitOf5(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+		$service = $this->createServiceWithMaxLabels(5);
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileAndUser')->willReturn([]);
+		$this->mapper->method('countByUser')->willReturn(3); // Has 3, adding 3 = 6
+
+		$this->expectException(\OverflowException::class);
+		$this->expectExceptionMessage('Label limit exceeded. You have 3 labels, maximum is 5.');
+
+		$service->setLabels($fileId, [
+			'key1' => 'v1',
+			'key2' => 'v2',
+			'key3' => 'v3',
+		]);
+	}
+
+	// ==========================================
+	// Edge Cases & Boundary Tests
+	// ==========================================
+
+	public function testRateLimitExactlyAtBoundary10000(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$label = new Label();
+		$label->setLabelKey('label10000');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(9999); // Adding gets to exactly 10000
+		$this->mapper->method('setLabel')->willReturn($label);
+
+		// Should succeed at exactly the limit
+		$result = $this->service->setLabel($fileId, 'label10000', 'value');
+		$this->assertEquals('label10000', $result->getLabelKey());
+	}
+
+	public function testRateLimitRejects10001(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(10000); // Would be 10001
+
+		$this->expectException(\OverflowException::class);
+
+		$this->service->setLabel($fileId, 'label10001', 'value');
+	}
+
+	public function testRateLimitWithZeroExistingLabels(): void {
+		$fileId = 123;
+		$userId = 'newuser';
+		$service = $this->createServiceWithMaxLabels(5);
+
+		$label = new Label();
+		$label->setLabelKey('firstlabel');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(0);
+		$this->mapper->method('setLabel')->willReturn($label);
+
+		// New user can add their first label
+		$result = $service->setLabel($fileId, 'firstlabel', 'value');
+		$this->assertEquals('firstlabel', $result->getLabelKey());
+	}
+
+	public function testRateLimitMessageIncludesCorrectCounts(): void {
+		$fileId = 123;
+		$userId = 'testuser';
+		$service = $this->createServiceWithMaxLabels(100);
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn(100);
+
+		try {
+			$service->setLabel($fileId, 'overlimit', 'value');
+			$this->fail('Expected OverflowException');
+		} catch (\OverflowException $e) {
+			$this->assertStringContainsString('100 labels', $e->getMessage());
+			$this->assertStringContainsString('maximum is 100', $e->getMessage());
+		}
+	}
+
+	/**
+	 * @dataProvider rateLimitBoundaryProvider
+	 */
+	public function testRateLimitBoundaries(int $maxLabels, int $currentCount, bool $shouldSucceed): void {
+		$fileId = 123;
+		$userId = 'testuser';
+		$service = $this->createServiceWithMaxLabels($maxLabels);
+
+		$label = new Label();
+		$label->setLabelKey('testkey');
+
+		$this->accessChecker->method('getCurrentUserId')->willReturn($userId);
+		$this->accessChecker->method('canWrite')->willReturn(true);
+		$this->mapper->method('findByFileUserAndKey')->willReturn(null);
+		$this->mapper->method('countByUser')->willReturn($currentCount);
+
+		if ($shouldSucceed) {
+			$this->mapper->method('setLabel')->willReturn($label);
+			$result = $service->setLabel($fileId, 'testkey', 'value');
+			$this->assertInstanceOf(Label::class, $result);
+		} else {
+			$this->expectException(\OverflowException::class);
+			$service->setLabel($fileId, 'testkey', 'value');
+		}
+	}
+
+	public static function rateLimitBoundaryProvider(): array {
+		return [
+			'limit 5, has 0, can add' => [5, 0, true],
+			'limit 5, has 4, can add 5th' => [5, 4, true],
+			'limit 5, has 5, cannot add 6th' => [5, 5, false],
+			'limit 5, has 10, cannot add' => [5, 10, false],
+			'limit 100, has 99, can add' => [100, 99, true],
+			'limit 100, has 100, cannot add' => [100, 100, false],
+			'limit 10000, has 9999, can add' => [10000, 9999, true],
+			'limit 10000, has 10000, cannot add' => [10000, 10000, false],
+			'limit 1, has 0, can add' => [1, 0, true],
+			'limit 1, has 1, cannot add' => [1, 1, false],
+		];
 	}
 }
