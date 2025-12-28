@@ -1,10 +1,18 @@
 <!--
-  - SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+  - SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
   - SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
 <template>
 	<div class="files-labels-tab">
+		<!-- ARIA live region for screen reader announcements -->
+		<div
+			class="visually-hidden"
+			aria-live="polite"
+			aria-atomic="true">
+			{{ statusAnnouncement }}
+		</div>
+
 		<div v-if="loading" class="loading-container">
 			<div class="icon-loading" />
 			<p>{{ t('files_labels', 'Loading labels...') }}</p>
@@ -59,7 +67,7 @@
 							:placeholder="t('files_labels', 'Value')"
 							class="label-input"
 							required
-							maxlength="4000"
+							maxlength="255"
 							:disabled="saving">
 					</div>
 					<div class="form-actions">
@@ -78,9 +86,17 @@
 			</div>
 
 			<!-- Error message -->
-			<div v-if="error" class="error-message">
+			<div v-if="error" class="error-message" role="alert">
 				<p>{{ error }}</p>
 			</div>
+
+			<!-- Delete confirmation dialog -->
+			<NcDialog
+				v-if="deleteConfirmKey !== null"
+				:name="t('files_labels', 'Delete label')"
+				:message="t('files_labels', 'Are you sure you want to delete the label \"{key}\"?', { key: deleteConfirmKey })"
+				:buttons="deleteDialogButtons"
+				@close="deleteConfirmKey = null" />
 		</div>
 	</div>
 </template>
@@ -94,6 +110,7 @@ import { emit } from '@nextcloud/event-bus'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
 import NcActions from '@nextcloud/vue/dist/Components/NcActions.js'
 import NcActionButton from '@nextcloud/vue/dist/Components/NcActionButton.js'
+import NcDialog from '@nextcloud/vue/dist/Components/NcDialog.js'
 import BookmarkOutline from 'vue-material-design-icons/BookmarkOutline.vue'
 
 export default {
@@ -103,6 +120,7 @@ export default {
 		NcButton,
 		NcActions,
 		NcActionButton,
+		NcDialog,
 		BookmarkOutline,
 	},
 
@@ -121,12 +139,32 @@ export default {
 			error: null,
 			newKey: '',
 			newValue: '',
+			statusAnnouncement: '',
+			deleteConfirmKey: null,
 		}
 	},
 
 	computed: {
 		fileId() {
 			return this.fileInfo?.id
+		},
+
+		deleteDialogButtons() {
+			return [
+				{
+					label: t('files_labels', 'Cancel'),
+					callback: () => {
+						this.deleteConfirmKey = null
+					},
+				},
+				{
+					label: t('files_labels', 'Delete'),
+					type: 'error',
+					callback: () => {
+						this.confirmDelete()
+					},
+				},
+			]
 		},
 	},
 
@@ -156,9 +194,12 @@ export default {
 				})
 				const response = await axios.get(url)
 				this.labels = response.data.ocs.data || {}
+				const count = Object.keys(this.labels).length
+				this.statusAnnouncement = t('files_labels', '{count} labels loaded', { count })
 			} catch (error) {
 				console.error('Failed to load labels:', error)
 				this.error = t('files_labels', 'Failed to load labels')
+				this.statusAnnouncement = t('files_labels', 'Failed to load labels')
 				showError(t('files_labels', 'Failed to load labels'))
 			} finally {
 				this.loading = false
@@ -189,6 +230,8 @@ export default {
 					value: this.newValue,
 				})
 
+				const addedKey = this.newKey
+
 				// Update local state
 				this.labels = {
 					...this.labels,
@@ -205,20 +248,29 @@ export default {
 				this.newKey = ''
 				this.newValue = ''
 
+				this.statusAnnouncement = t('files_labels', 'Label "{key}" added', { key: addedKey })
 				showSuccess(t('files_labels', 'Label added successfully'))
 			} catch (error) {
 				console.error('Failed to add label:', error)
 				const message = error.response?.data?.ocs?.meta?.message
 					|| t('files_labels', 'Failed to add label')
 				this.error = message
+				this.statusAnnouncement = message
 				showError(message)
 			} finally {
 				this.saving = false
 			}
 		},
 
-		async deleteLabel(key) {
-			if (!this.fileId) {
+		deleteLabel(key) {
+			// Show confirmation dialog instead of deleting immediately
+			this.deleteConfirmKey = key
+		},
+
+		async confirmDelete() {
+			const key = this.deleteConfirmKey
+			if (!this.fileId || !key) {
+				this.deleteConfirmKey = null
 				return
 			}
 
@@ -241,12 +293,16 @@ export default {
 					labels: { ...this.labels },
 				})
 
+				this.statusAnnouncement = t('files_labels', 'Label "{key}" deleted', { key })
 				showSuccess(t('files_labels', 'Label deleted successfully'))
 			} catch (error) {
 				console.error('Failed to delete label:', error)
 				const message = error.response?.data?.ocs?.meta?.message
 					|| t('files_labels', 'Failed to delete label')
+				this.statusAnnouncement = message
 				showError(message)
+			} finally {
+				this.deleteConfirmKey = null
 			}
 		},
 	},
@@ -254,6 +310,19 @@ export default {
 </script>
 
 <style scoped lang="scss">
+// Visually hidden but accessible to screen readers
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
 .files-labels-tab {
 	padding: 20px;
 	min-height: 300px;
