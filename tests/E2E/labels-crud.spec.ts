@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+ * SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  * Labels CRUD Tests - Create, Read, Update, Delete operations
  */

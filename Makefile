@@ -1,6 +1,6 @@
 # Makefile for files_labels Nextcloud app
 #
-# SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+# SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 .PHONY: help install build dev watch test test-unit test-e2e test-e2e-ui test-e2e-debug clean lint

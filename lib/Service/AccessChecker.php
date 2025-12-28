@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * SPDX-FileCopyrightText: 2024 Jeff <jeff@example.com>
+ * SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -12,6 +12,7 @@ namespace OCA\FilesLabels\Service;
 use OCP\Constants;
 use OCP\Files\IRootFolder;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 /**
  * Service to check if the current user can access files for label operations.
@@ -22,6 +23,7 @@ class AccessChecker {
 	public function __construct(
 		private IRootFolder $rootFolder,
 		private IUserSession $userSession,
+		private LoggerInterface $logger,
 	) {
 	}
 
