@@ -94,7 +94,7 @@
 			<NcDialog
 				v-if="deleteConfirmKey !== null"
 				:name="t('files_labels', 'Delete label')"
-				:message="t('files_labels', 'Are you sure you want to delete the label \"{key}\"?', { key: deleteConfirmKey })"
+				:message="deleteConfirmMessage"
 				:buttons="deleteDialogButtons"
 				@close="deleteConfirmKey = null" />
 		</div>
@@ -147,6 +147,10 @@ export default {
 	computed: {
 		fileId() {
 			return this.fileInfo?.id
+		},
+
+		deleteConfirmMessage() {
+			return t('files_labels', 'Are you sure you want to delete the label "{key}"?', { key: this.deleteConfirmKey })
 		},
 
 		deleteDialogButtons() {
@@ -252,7 +256,8 @@ export default {
 				showSuccess(t('files_labels', 'Label added successfully'))
 			} catch (error) {
 				console.error('Failed to add label:', error)
-				const message = error.response?.data?.ocs?.meta?.message
+				const message = error.response?.data?.ocs?.data?.error
+					|| error.response?.data?.ocs?.meta?.message
 					|| t('files_labels', 'Failed to add label')
 				this.error = message
 				this.statusAnnouncement = message
@@ -297,7 +302,8 @@ export default {
 				showSuccess(t('files_labels', 'Label deleted successfully'))
 			} catch (error) {
 				console.error('Failed to delete label:', error)
-				const message = error.response?.data?.ocs?.meta?.message
+				const message = error.response?.data?.ocs?.data?.error
+					|| error.response?.data?.ocs?.meta?.message
 					|| t('files_labels', 'Failed to delete label')
 				this.statusAnnouncement = message
 				showError(message)
