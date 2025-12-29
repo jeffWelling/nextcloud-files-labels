@@ -28,8 +28,8 @@ use Psr\Log\LoggerInterface;
 class LabelsService {
 	private const APP_ID = 'files_labels';
 
-	// Valid label key pattern: lowercase alphanumeric, dots, dashes, underscores, colons
-	private const KEY_PATTERN = '/^[a-z0-9_:.-]+$/';
+	// Valid label key pattern: lowercase alphanumeric, dots, dashes, underscores
+	private const KEY_PATTERN = '/^[a-z0-9_.-]+$/';
 	private const MAX_KEY_LENGTH = 255;
 	// Value length limit imposed for UI aesthetics (sidebar display)
 	private const MAX_VALUE_LENGTH = 255;
@@ -351,7 +351,7 @@ class LabelsService {
 			throw new \InvalidArgumentException('Label key cannot exceed ' . self::MAX_KEY_LENGTH . ' characters');
 		}
 		if (!preg_match(self::KEY_PATTERN, $key)) {
-			throw new \InvalidArgumentException('Label key must match pattern [a-z0-9_:.-]+');
+			throw new \InvalidArgumentException('Label key must match pattern [a-z0-9_.-]+');
 		}
 	}
 

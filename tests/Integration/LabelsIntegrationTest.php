@@ -311,9 +311,8 @@ class LabelsIntegrationTest extends TestCase {
 			'with-dash',
 			'with_underscore',
 			'with.dot',
-			'with:colon',
 			'numbers123',
-			'mix-all_valid.chars:123',
+			'mix-all_valid.chars',
 		];
 
 		foreach ($validKeys as $key) {
@@ -351,7 +350,7 @@ class LabelsIntegrationTest extends TestCase {
 		$file = $this->createTestFile('long_key.txt');
 		$fileId = $file->getId();
 
-		$longKey = str_repeat('a', 65); // Max is 64
+		$longKey = str_repeat('a', 256); // Max is 255
 
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service->setLabel($fileId, $longKey, 'value');
@@ -362,7 +361,7 @@ class LabelsIntegrationTest extends TestCase {
 		$fileId = $file->getId();
 
 		// Max length value should work
-		$maxValue = str_repeat('x', 4096);
+		$maxValue = str_repeat('x', 255);
 		$labels = $this->service->setLabel($fileId, 'longval', $maxValue);
 		$this->assertEquals($maxValue, $labels['longval']);
 	}
@@ -371,7 +370,7 @@ class LabelsIntegrationTest extends TestCase {
 		$file = $this->createTestFile('toolong_value.txt');
 		$fileId = $file->getId();
 
-		$tooLong = str_repeat('x', 4097); // Max is 4096
+		$tooLong = str_repeat('x', 256); // Max is 255
 
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service->setLabel($fileId, 'toobig', $tooLong);

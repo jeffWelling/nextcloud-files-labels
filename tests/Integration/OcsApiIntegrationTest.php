@@ -198,7 +198,7 @@ class OcsApiIntegrationTest extends TestCase {
 
 	public function testSetRejectsTooLongKey(): void {
 		$file = $this->createTestFile('long_key.txt');
-		$longKey = str_repeat('a', 65);
+		$longKey = str_repeat('a', 256); // Max is 255
 
 		$response = $this->controller->set($file->getId(), $longKey, 'value');
 
@@ -207,7 +207,7 @@ class OcsApiIntegrationTest extends TestCase {
 
 	public function testSetRejectsTooLongValue(): void {
 		$file = $this->createTestFile('long_val.txt');
-		$longValue = str_repeat('x', 4097);
+		$longValue = str_repeat('x', 256); // Max is 255
 
 		$response = $this->controller->set($file->getId(), 'key', $longValue);
 

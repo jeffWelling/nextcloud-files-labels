@@ -97,7 +97,7 @@ test.describe('Labels CRUD Operations', () => {
 		const fileId = await labels.getFileId(testFile)
 		if (!fileId) { test.skip(); return }
 		await labels.clearAllLabelsViaAPI(fileId)
-		const validKeys = ['simple', 'with-dash', 'with_underscore', 'with.dot', 'with:colon']
+		const validKeys = ['simple', 'with-dash', 'with_underscore', 'with.dot']
 		for (const key of validKeys) await labels.setLabelViaAPI(fileId, key, 'value')
 		const labelsData = await labels.getLabelsViaAPI(fileId)
 		for (const key of validKeys) expect(labelsData).toHaveProperty(key, 'value')

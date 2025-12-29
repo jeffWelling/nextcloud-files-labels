@@ -108,14 +108,14 @@ class LabelTest extends TestCase {
 	}
 
 	public function testLongValue(): void {
-		$longValue = str_repeat('a', 4096);
+		$longValue = str_repeat('a', 255);
 		$this->label->setLabelValue($longValue);
 		$this->assertEquals($longValue, $this->label->getLabelValue());
 	}
 
 	public function testSpecialCharactersInKey(): void {
-		$this->label->setLabelKey('test_key-with.special:chars');
-		$this->assertEquals('test_key-with.special:chars', $this->label->getLabelKey());
+		$this->label->setLabelKey('test_key-with.special.chars');
+		$this->assertEquals('test_key-with.special.chars', $this->label->getLabelKey());
 	}
 
 	public function testSpecialCharactersInValue(): void {

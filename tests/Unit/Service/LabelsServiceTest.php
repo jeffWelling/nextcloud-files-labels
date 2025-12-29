@@ -240,10 +240,10 @@ class LabelsServiceTest extends TestCase {
 		$this->accessChecker->method('getCurrentUserId')
 			->willReturn('testuser');
 
-		$longKey = str_repeat('a', 65);
+		$longKey = str_repeat('a', 256);
 
 		$this->expectException(\InvalidArgumentException::class);
-		$this->expectExceptionMessage('Label key cannot exceed 64 characters');
+		$this->expectExceptionMessage('Label key cannot exceed 255 characters');
 
 		$this->service->setLabel(123, $longKey, 'value');
 	}
@@ -289,9 +289,8 @@ class LabelsServiceTest extends TestCase {
 			['with-dash'],
 			['with_underscore'],
 			['with.dot'],
-			['with:colon'],
 			['numbers123'],
-			['mix-all_valid.chars:together'],
+			['mix-all_valid.chars'],
 		];
 	}
 
@@ -316,6 +315,7 @@ class LabelsServiceTest extends TestCase {
 			['has#hash'],
 			['has/slash'],
 			['has\\backslash'],
+			['with:colon'],
 		];
 	}
 
@@ -323,10 +323,10 @@ class LabelsServiceTest extends TestCase {
 		$this->accessChecker->method('getCurrentUserId')
 			->willReturn('testuser');
 
-		$longValue = str_repeat('a', 4097);
+		$longValue = str_repeat('a', 256);
 
 		$this->expectException(\InvalidArgumentException::class);
-		$this->expectExceptionMessage('Label value cannot exceed 4096 characters');
+		$this->expectExceptionMessage('Label value cannot exceed 255 characters');
 
 		$this->service->setLabel(123, 'key', $longValue);
 	}
@@ -334,7 +334,7 @@ class LabelsServiceTest extends TestCase {
 	public function testSetLabelValueMaxLength(): void {
 		$fileId = 123;
 		$userId = 'testuser';
-		$maxValue = str_repeat('a', 4096);
+		$maxValue = str_repeat('a', 255);
 
 		$label = new Label();
 		$label->setLabelValue($maxValue);
