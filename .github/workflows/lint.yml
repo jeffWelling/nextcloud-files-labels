@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     name: PHP Lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     name: PHP Code Style
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     name: JavaScript Lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Validate info.xml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate info.xml
         run: |

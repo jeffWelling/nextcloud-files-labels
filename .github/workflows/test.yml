@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Unit Tests
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -86,7 +86,7 @@ jobs:
           --health-retries=5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
@@ -96,7 +96,7 @@ jobs:
           coverage: none
 
       - name: Checkout Nextcloud
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: nextcloud/server
           ref: stable${{ matrix.nextcloud }}
@@ -164,7 +164,7 @@ jobs:
         database: ['sqlite', 'mysql', 'pgsql']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
