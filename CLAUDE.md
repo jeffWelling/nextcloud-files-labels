@@ -187,8 +187,8 @@ CREATE TABLE file_labels (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   file_id BIGINT NOT NULL,              -- Nextcloud file ID
   user_id VARCHAR(64) NOT NULL,         -- Nextcloud user ID
-  label_key VARCHAR(64) NOT NULL,       -- Label key (lowercase alphanumeric, .-_:)
-  label_value TEXT NOT NULL,            -- Label value (up to 4096 chars)
+  label_key VARCHAR(255) NOT NULL,      -- Label key (lowercase alphanumeric, .-_)
+  label_value VARCHAR(255) NOT NULL,    -- Label value (up to 255 chars)
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
 
@@ -204,24 +204,25 @@ CREATE TABLE file_labels (
 
 ### Label Key Validation
 
-Pattern: `[a-z0-9_:.-]+` (lowercase alphanumeric, dots, dashes, underscores, colons)
-Max length: 64 characters
+Pattern: `[a-z0-9_.-]+` (lowercase alphanumeric, dots, dashes, underscores)
+Max length: 255 characters
 
 Valid examples:
 - `category`
 - `project`
-- `app.myapp:status`
 - `sensitive`
 - `rating-stars`
+- `app.myapp.status`
 
 Invalid:
 - Uppercase letters
 - Spaces
+- Colons
 - Special characters (!@#$%^&*)
 
 ### Label Value Validation
 
-- Max length: 4,096 characters
+- Max length: 255 characters
 - Can be empty string
 - Supports Unicode and all characters
 

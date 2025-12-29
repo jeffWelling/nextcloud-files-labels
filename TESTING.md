@@ -180,8 +180,8 @@ Tests the `SabrePluginAddListener` event handling:
 ## Validation Rules Tested
 
 ### Label Key Validation
-- **Pattern**: `[a-z0-9_:.-]+` (lowercase alphanumeric, dots, dashes, underscores, colons)
-- **Max Length**: 64 characters
+- **Pattern**: `[a-z0-9_.-]+` (lowercase alphanumeric, dots, dashes, underscores)
+- **Max Length**: 255 characters
 - **Cannot be empty**
 
 Valid examples tested:
@@ -189,18 +189,18 @@ Valid examples tested:
 - `with-dash`
 - `with_underscore`
 - `with.dot`
-- `with:colon`
 - `numbers123`
-- `mix-all_valid.chars:together`
+- `mix-all_valid.chars`
 
 Invalid examples tested:
 - `Has Space` (contains space)
 - `UPPERCASE` (uppercase letters)
+- `with:colon` (colons not allowed)
 - `special!char` (invalid character)
 - `has@symbol` (invalid character)
 
 ### Label Value Validation
-- **Max Length**: 4,096 characters
+- **Max Length**: 255 characters
 - **Can be empty**
 - **Supports Unicode and special characters**
 
@@ -252,7 +252,7 @@ Tests verify:
 
 1. **Empty collections**: Empty arrays, no labels
 2. **Null values**: Null dates, null user session
-3. **Boundary conditions**: Max length values (64 chars for keys, 4096 for values)
+3. **Boundary conditions**: Max length values (255 chars for keys, 255 for values)
 4. **Special characters**: Unicode, quotes, newlines
 5. **Permission scenarios**: Read without write, write without read, no access
 6. **Caching**: Cache hits, cache misses, preload optimization
