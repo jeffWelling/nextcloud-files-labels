@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: lint-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    name: PHP Lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: PHP syntax check
+        run: find lib/ -name "*.php" -print0 | xargs -0 -n1 php -l
+
+  php-cs:
+    runs-on: ubuntu-latest
+    name: PHP Code Style
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: php-cs-fixer
+          coverage: none
+
+      - name: Run PHP-CS-Fixer
+        if: hashFiles('.php-cs-fixer.dist.php') != ''
+        run: php-cs-fixer fix --dry-run --diff
+
+  js-lint:
+    runs-on: ubuntu-latest
+    name: JavaScript Lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        if: hashFiles('.eslintrc.js', '.eslintrc.json', '.eslintrc.yml') != ''
+        run: npm run lint
+
+  info-xml:
+    runs-on: ubuntu-latest
+    name: Validate info.xml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate info.xml
+        run: |
+          if [ -f appinfo/info.xml ]; then
+            xmllint --noout appinfo/info.xml
+          fi

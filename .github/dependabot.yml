@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      nextcloud:
+        patterns:
+          - "@nextcloud/*"
+      vue:
+        patterns:
+          - "vue*"
+          - "@vue/*"
+      babel:
+        patterns:
+          - "@babel/*"
+          - "babel-*"
+      playwright:
+        patterns:
+          - "@playwright/*"
+          - "playwright"
+    labels:
+      - "dependencies"
+      - "skip-changelog"
+
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "skip-changelog"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "skip-changelog"
