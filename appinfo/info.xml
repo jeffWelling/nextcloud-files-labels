@@ -7,23 +7,24 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>files_labels</id>
     <name>File Labels</name>
-    <summary>User-specific labels for files with sensitive content hiding</summary>
+    <summary>User-specific key-value labels for files</summary>
     <description><![CDATA[
-This app allows users to attach key-value labels to files. Labels are user-specific,
-meaning each user manages their own labels independently.
+A primitive for attaching user-specific key-value labels to files. Designed as a
+foundation for other apps to build on.
 
 Key features:
-- User-specific labels (not shared between users)
-- Key-value pairs for flexible metadata
-- Hide previews for files labeled as sensitive (solid placeholder, no data leakage)
-- WebDAV integration for client sync
-- OCS API for programmatic access
+- User-specific labels (each user manages their own labels independently)
+- Key-value pairs for flexible metadata (category=work, priority=high)
+- WebDAV integration for desktop/mobile client sync
+- OCS REST API for programmatic access
+- Event bus for inter-app communication
+- Sidebar tab in Files app for label management
 
 Example use cases:
-- Mark files as sensitive to hide previews entirely
 - Personal organization (project=work, status=todo)
 - Ratings and reviews
 - Custom workflows
+- Building other apps that need file metadata
 ]]></description>
     <version>0.2.0</version>
     <licence>agpl</licence>
@@ -31,7 +32,9 @@ Example use cases:
     <namespace>FilesLabels</namespace>
     <category>files</category>
     <category>organization</category>
-    <bugs>https://github.com/nextcloud/files_labels/issues</bugs>
+    <website>https://github.com/jeffWelling/nextcloud-files-labels</website>
+    <repository>https://github.com/jeffWelling/nextcloud-files-labels</repository>
+    <bugs>https://github.com/jeffWelling/nextcloud-files-labels/issues</bugs>
     <dependencies>
         <php min-version="8.1"/>
         <nextcloud min-version="28" max-version="31"/>
