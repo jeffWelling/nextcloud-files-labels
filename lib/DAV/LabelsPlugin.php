@@ -190,12 +190,13 @@ class LabelsPlugin extends ServerPlugin {
 				// Note: We only delete labels explicitly set to null, not missing keys
 				// This allows partial updates
 
-				// Perform deletions
+				// Deletions must run before setLabels so the rate-limit check
+				// inside setLabels sees post-delete counts; otherwise a PROPPATCH
+				// that both adds and removes could spuriously exceed the cap.
 				foreach ($toDelete as $key) {
 					$this->labelsService->deleteLabel($fileId, $key);
 				}
 
-				// Perform additions/updates
 				if (!empty($toSet)) {
 					$this->labelsService->setLabels($fileId, $toSet);
 				}

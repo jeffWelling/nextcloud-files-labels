@@ -15,6 +15,7 @@ use OCA\FilesLabels\Service\AccessChecker;
 use OCA\FilesLabels\Service\LabelsService;
 use OCP\Files\NotPermittedException;
 use OCP\IConfig;
+use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
@@ -24,6 +25,7 @@ class LabelsServiceTest extends TestCase {
 	private AccessChecker $accessChecker;
 	private LoggerInterface $logger;
 	private IConfig $config;
+	private IDBConnection $db;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -32,11 +34,16 @@ class LabelsServiceTest extends TestCase {
 		$this->accessChecker = $this->createMock(AccessChecker::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->db = $this->createMock(IDBConnection::class);
 
 		// Default config: 10000 labels per user
 		$this->config->method('getAppValue')
 			->with('files_labels', 'max_labels_per_user', '10000')
 			->willReturn('10000');
+
+		// setLabel/setLabels wrap the rate-limit check + write in a
+		// transaction; provide a default connection mock for every test.
+		$this->mapper->method('getConnection')->willReturn($this->db);
 
 		$this->service = new LabelsService(
 			$this->mapper,
@@ -797,10 +804,6 @@ class LabelsServiceTest extends TestCase {
 		$this->mapper->method('countByUser')->willReturn(9998); // Has 9998, adding 2 = 10000
 		$this->mapper->method('setLabel')->willReturnOnConsecutiveCalls($label1, $label2);
 
-		// Mock database transaction
-		$db = $this->createMock(\OCP\IDBConnection::class);
-		$this->mapper->method('getConnection')->willReturn($db);
-
 		$result = $this->service->setLabels($fileId, ['key1' => 'v1', 'key2' => 'v2']);
 		$this->assertCount(2, $result);
 	}
@@ -838,10 +841,6 @@ class LabelsServiceTest extends TestCase {
 		$this->mapper->method('findByFileAndUser')->willReturn([$existing]); // Has 'existing'
 		$this->mapper->method('countByUser')->willReturn(9999); // Has 9999
 		$this->mapper->method('setLabel')->willReturnOnConsecutiveCalls($label1, $label2);
-
-		// Mock database transaction
-		$db = $this->createMock(\OCP\IDBConnection::class);
-		$this->mapper->method('getConnection')->willReturn($db);
 
 		// Should succeed: updating 'existing' (doesn't count) + adding 'newkey' (1 new)
 		// 9999 + 1 = 10000, exactly at limit

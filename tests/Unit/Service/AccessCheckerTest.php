@@ -17,6 +17,7 @@ use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
 use OCP\IUser;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 use Test\TestCase;
 
 class AccessCheckerTest extends TestCase {
@@ -25,6 +26,7 @@ class AccessCheckerTest extends TestCase {
 	private IUserSession $userSession;
 	private IUser $user;
 	private Folder $userFolder;
+	private LoggerInterface $logger;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -33,10 +35,12 @@ class AccessCheckerTest extends TestCase {
 		$this->userSession = $this->createMock(IUserSession::class);
 		$this->user = $this->createMock(IUser::class);
 		$this->userFolder = $this->createMock(Folder::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 
 		$this->accessChecker = new AccessChecker(
 			$this->rootFolder,
-			$this->userSession
+			$this->userSession,
+			$this->logger
 		);
 	}
 

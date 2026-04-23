@@ -135,13 +135,25 @@ class LabelsService {
 			throw new NotPermittedException('Cannot modify file');
 		}
 
-		// Check rate limit (only for new labels)
-		$existing = $this->mapper->findByFileUserAndKey($fileId, $userId, $key);
-		if ($existing === null) {
-			$this->checkRateLimit($userId);
-		}
+		$db = $this->mapper->getConnection();
+		$existing = null;
+		$label = null;
 
-		$label = $this->mapper->setLabel($fileId, $userId, $key, $value);
+		// Wrap rate-limit check and write in one transaction so concurrent
+		// writers serialize on the row locks acquired by the INSERT/UPDATE,
+		// narrowing the TOCTOU window against max_labels_per_user.
+		$db->beginTransaction();
+		try {
+			$existing = $this->mapper->findByFileUserAndKey($fileId, $userId, $key);
+			if ($existing === null) {
+				$this->checkRateLimit($userId);
+			}
+			$label = $this->mapper->setLabel($fileId, $userId, $key, $value);
+			$db->commit();
+		} catch (\Exception $e) {
+			$db->rollBack();
+			throw $e;
+		}
 
 		$this->logger->debug('Label set', [
 			'app' => self::APP_ID,
@@ -179,30 +191,31 @@ class LabelsService {
 			throw new NotPermittedException('Cannot modify file');
 		}
 
-		// Count how many are truly new (not updates)
-		$existingLabels = $this->mapper->findByFileAndUser($fileId, $userId);
-		$existingKeys = [];
-		foreach ($existingLabels as $label) {
-			$existingKeys[$label->getLabelKey()] = true;
-		}
-		$newCount = 0;
-		foreach (array_keys($labels) as $key) {
-			if (!isset($existingKeys[$key])) {
-				$newCount++;
-			}
-		}
-
-		// Check rate limit for new labels
-		if ($newCount > 0) {
-			$this->checkRateLimit($userId, $newCount);
-		}
-
-		// Execute in transaction for atomicity
 		$db = $this->mapper->getConnection();
 		$result = [];
+		$newCount = 0;
 
+		// Rate-limit check and writes share one transaction so concurrent
+		// writers serialize on the row locks acquired by INSERT/UPDATE,
+		// narrowing the TOCTOU window against max_labels_per_user.
 		$db->beginTransaction();
 		try {
+			// Count how many are truly new (not updates)
+			$existingLabels = $this->mapper->findByFileAndUser($fileId, $userId);
+			$existingKeys = [];
+			foreach ($existingLabels as $label) {
+				$existingKeys[$label->getLabelKey()] = true;
+			}
+			foreach (array_keys($labels) as $key) {
+				if (!isset($existingKeys[$key])) {
+					$newCount++;
+				}
+			}
+
+			if ($newCount > 0) {
+				$this->checkRateLimit($userId, $newCount);
+			}
+
 			foreach ($labels as $key => $value) {
 				$result[] = $this->mapper->setLabel($fileId, $userId, $key, $value);
 			}

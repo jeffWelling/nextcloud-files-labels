@@ -52,6 +52,15 @@ class AccessChecker {
 				->getFirstNodeById($fileId);
 			return $node !== null;
 		} catch (\Exception $e) {
+			// Fail closed, but log so operators can distinguish a real access
+			// issue (DB/filesystem outage) from a legitimate permission denial.
+			$this->logger->warning('canRead failed for file {fileId}: {error}', [
+				'app' => 'files_labels',
+				'fileId' => $fileId,
+				'userId' => $userId,
+				'error' => $e->getMessage(),
+				'exception' => $e,
+			]);
 			return false;
 		}
 	}
@@ -79,6 +88,13 @@ class AccessChecker {
 			}
 			return false;
 		} catch (\Exception $e) {
+			$this->logger->warning('canWrite failed for file {fileId}: {error}', [
+				'app' => 'files_labels',
+				'fileId' => $fileId,
+				'userId' => $userId,
+				'error' => $e->getMessage(),
+				'exception' => $e,
+			]);
 			return false;
 		}
 	}
@@ -109,6 +125,13 @@ class AccessChecker {
 
 			return $accessible;
 		} catch (\Exception $e) {
+			$this->logger->warning('filterAccessible failed: {error}', [
+				'app' => 'files_labels',
+				'userId' => $userId,
+				'count' => count($fileIds),
+				'error' => $e->getMessage(),
+				'exception' => $e,
+			]);
 			return [];
 		}
 	}
