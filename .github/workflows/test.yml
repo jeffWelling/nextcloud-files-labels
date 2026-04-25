@@ -189,6 +189,21 @@ jobs:
           docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml up -d
           PORT=8081
 
+          # Workaround: Docker creates the bind-mount parent
+          # /var/www/html/custom_apps as root:root, and Nextcloud's apps_paths
+          # default expects custom_apps writable by www-data. The pre-install
+          # hook can't fix this — it runs as www-data and gets "Operation not
+          # permitted" on chown. So we exec as root from the workflow.
+          # Wait briefly for the container to be ready for exec, then chown.
+          for i in 1 2 3 4 5; do
+            if docker exec --user root files_labels_test_${{ matrix.database }} \
+                  chown www-data:www-data /var/www/html/custom_apps 2>/dev/null; then
+              echo "Fixed custom_apps ownership after ${i} attempt(s)"
+              break
+            fi
+            sleep 2
+          done
+
           # Wait for Nextcloud, probing every 4s and dumping state every 30s
           for i in $(seq 1 90); do
             if curl -sf "http://localhost:$PORT/status.php" > /dev/null 2>&1; then
