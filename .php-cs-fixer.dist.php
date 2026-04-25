@@ -26,7 +26,8 @@ return $config
         'function_typehint_space' => true,
         'include' => true,
         'lowercase_cast' => true,
-        'method_argument_space' => ['on_multiline' => 'ensure_fully_multiline'],
+        // Use 'ignore' on multiline so the fixer doesn't reflow tabs to 4-space-per-arg
+        'method_argument_space' => ['on_multiline' => 'ignore'],
         'no_blank_lines_after_phpdoc' => true,
         'no_empty_statement' => true,
         'no_extra_blank_lines' => true,
