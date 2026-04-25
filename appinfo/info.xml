@@ -33,7 +33,6 @@ Example use cases:
     <category>files</category>
     <category>organization</category>
     <website>https://github.com/jeffWelling/nextcloud-files-labels</website>
-    <repository>https://github.com/jeffWelling/nextcloud-files-labels</repository>
     <bugs>https://github.com/jeffWelling/nextcloud-files-labels/issues</bugs>
     <dependencies>
         <php min-version="8.1"/>
