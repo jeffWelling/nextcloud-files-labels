@@ -239,18 +239,25 @@ jobs:
 
       - name: Create test users for Playwright
         # global-setup.ts logs in as testuser1/testuser2 — they don't exist
-        # on a fresh install. Create them with the same passwords the setup
-        # script expects.
+        # on a fresh install. The default `testpass123` is in HIBP's
+        # compromised list and Nextcloud refuses to create accounts with it,
+        # so use a unique passphrase and forward the same value to Playwright
+        # via TEST_PASSWORD / TEST_PASSWORD_2 below.
         run: |
           CONTAINER=files_labels_test_${{ matrix.database }}
           for user in testuser1 testuser2; do
-            docker exec --env OC_PASS=testpass123 -u www-data $CONTAINER \
+            docker exec --env OC_PASS="${E2E_PASSWORD}" -u www-data $CONTAINER \
               php occ user:add --password-from-env --display-name "$user" "$user"
           done
+        env:
+          E2E_PASSWORD: 'e2e-NotAPwnedPass!2026'
 
       - name: Run E2E tests
         run: |
           PLAYWRIGHT_BASE_URL=http://localhost:8081 npx playwright test
+        env:
+          TEST_PASSWORD: 'e2e-NotAPwnedPass!2026'
+          TEST_PASSWORD_2: 'e2e-NotAPwnedPass!2026'
 
       - name: Upload test artifacts
         if: failure()
