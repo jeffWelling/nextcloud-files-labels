@@ -20,7 +20,7 @@ window.addEventListener('DOMContentLoaded', () => {
 			name: t('files_labels', 'Labels'),
 			iconSvg: labelIconSvg,
 
-			async mount(el, fileInfo, context) {
+			async mount(el, fileInfo) {
 				if (this.component) {
 					this.component.$destroy()
 				}

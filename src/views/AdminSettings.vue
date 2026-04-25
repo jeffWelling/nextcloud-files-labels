@@ -74,7 +74,7 @@ export default {
 			try {
 				await axios.put(
 					generateUrl('/apps/files_labels/admin/settings/max-labels'),
-					{ value: this.maxLabelsPerUser }
+					{ value: this.maxLabelsPerUser },
 				)
 				this.saved = true
 				// Clear saved status after 3 seconds
