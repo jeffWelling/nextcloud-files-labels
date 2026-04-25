@@ -104,6 +104,7 @@ class OcsApiIntegrationTest extends TestCase {
 	private function createTestFile(string $name = 'api_test.txt'): File {
 		$file = $this->userFolder->newFile($name, 'test content');
 		$this->createdFiles[] = $file;
+
 		return $file;
 	}
 
@@ -270,6 +271,7 @@ class OcsApiIntegrationTest extends TestCase {
 					'status' => 'active',
 				];
 			}
+
 			return null;
 		});
 
@@ -401,7 +403,7 @@ class OcsApiIntegrationTest extends TestCase {
 
 		// Rapid set/update/delete cycles
 		for ($i = 0; $i < 20; $i++) {
-			$this->controller->set($fileId, 'counter', (string)$i);
+			$this->controller->set($fileId, 'counter', (string) $i);
 		}
 
 		$labels = $this->service->getLabels($fileId);

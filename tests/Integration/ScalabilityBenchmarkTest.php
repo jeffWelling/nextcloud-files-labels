@@ -85,12 +85,12 @@ class ScalabilityBenchmarkTest extends TestCase {
 		echo "========================================\n";
 		echo "  SCALABILITY BENCHMARK TEST RESULTS   \n";
 		echo "========================================\n\n";
-		echo str_pad("Scale", 12) . " | ";
-		echo str_pad("Operation", 15) . " | ";
-		echo str_pad("Time (ms)", 12) . " | ";
-		echo str_pad("Memory (MB)", 12) . " | ";
-		echo str_pad("Labels/sec", 15) . "\n";
-		echo str_repeat("-", 80) . "\n";
+		echo str_pad('Scale', 12) . ' | ';
+		echo str_pad('Operation', 15) . ' | ';
+		echo str_pad('Time (ms)', 12) . ' | ';
+		echo str_pad('Memory (MB)', 12) . ' | ';
+		echo str_pad('Labels/sec', 15) . "\n";
+		echo str_repeat('-', 80) . "\n";
 	}
 
 	protected function tearDown(): void {
@@ -126,6 +126,7 @@ class ScalabilityBenchmarkTest extends TestCase {
 	private function createTestFile(string $name = 'test.txt', string $content = 'test content'): File {
 		$file = $this->userFolder->newFile($name, $content);
 		$this->createdFiles[] = $file;
+
 		return $file;
 	}
 
@@ -161,6 +162,7 @@ class ScalabilityBenchmarkTest extends TestCase {
 		if ($seconds == 0) {
 			return 'N/A';
 		}
+
 		return number_format($count / $seconds, 0);
 	}
 
@@ -168,10 +170,10 @@ class ScalabilityBenchmarkTest extends TestCase {
 	 * Print benchmark result row
 	 */
 	private function printResult(int $scale, string $operation, float $timeSec, int $memoryBytes, ?int $count = null): void {
-		echo str_pad(number_format($scale), 12) . " | ";
-		echo str_pad($operation, 15) . " | ";
-		echo str_pad($this->formatTime($timeSec), 12) . " | ";
-		echo str_pad($this->formatMemory($memoryBytes), 12) . " | ";
+		echo str_pad(number_format($scale), 12) . ' | ';
+		echo str_pad($operation, 15) . ' | ';
+		echo str_pad($this->formatTime($timeSec), 12) . ' | ';
+		echo str_pad($this->formatMemory($memoryBytes), 12) . ' | ';
 		echo str_pad($this->formatThroughput($count ?? $scale, $timeSec), 15) . "\n";
 	}
 
@@ -376,7 +378,7 @@ class ScalabilityBenchmarkTest extends TestCase {
 
 			// Pre-populate labels
 			for ($i = 0; $i < $scale; $i++) {
-				$label = $this->service->setLabel($fileId, "key$i", "initial_value");
+				$label = $this->service->setLabel($fileId, "key$i", 'initial_value');
 				$this->trackLabel($label);
 			}
 
@@ -386,7 +388,7 @@ class ScalabilityBenchmarkTest extends TestCase {
 
 			// Update all labels
 			for ($i = 0; $i < $scale; $i++) {
-				$this->service->setLabel($fileId, "key$i", "updated_value");
+				$this->service->setLabel($fileId, "key$i", 'updated_value');
 			}
 
 			$timeAfter = microtime(true);
@@ -470,7 +472,7 @@ class ScalabilityBenchmarkTest extends TestCase {
 			if (($i + 1) % 10000 === 0) {
 				$elapsed = microtime(true) - $timeBefore;
 				$throughput = ($i + 1) / $elapsed;
-				echo "  Progress: " . number_format($i + 1) . " labels added (" .
+				echo '  Progress: ' . number_format($i + 1) . ' labels added (' .
 					 number_format($throughput, 0) . " labels/sec)\n";
 			}
 		}
@@ -481,15 +483,15 @@ class ScalabilityBenchmarkTest extends TestCase {
 		$elapsed = $timeAfter - $timeBefore;
 		$memUsed = $memAfter - $memBefore;
 
-		echo "  Total time: " . $this->formatTime($elapsed) . " ms\n";
-		echo "  Memory used: " . $this->formatMemory($memUsed) . " MB\n";
-		echo "  Throughput: " . $this->formatThroughput($scale, $elapsed) . " labels/sec\n";
+		echo '  Total time: ' . $this->formatTime($elapsed) . " ms\n";
+		echo '  Memory used: ' . $this->formatMemory($memUsed) . " MB\n";
+		echo '  Throughput: ' . $this->formatThroughput($scale, $elapsed) . " labels/sec\n";
 
 		// Verify count
 		$labels = $this->service->getLabelsForFile($fileId);
 		$this->assertCount($scale, $labels);
 
-		echo "  Verification: All " . number_format($scale) . " labels retrieved successfully\n";
-		echo str_repeat("-", 80) . "\n";
+		echo '  Verification: All ' . number_format($scale) . " labels retrieved successfully\n";
+		echo str_repeat('-', 80) . "\n";
 	}
 }

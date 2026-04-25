@@ -9,8 +9,8 @@ declare(strict_types=1);
 
 namespace OCA\FilesLabels\Tests\Integration;
 
-use OCA\DAV\Connector\Sabre\File;
 use OCA\DAV\Connector\Sabre\Directory;
+use OCA\DAV\Connector\Sabre\File;
 use OCA\FilesLabels\DAV\LabelsPlugin;
 use OCA\FilesLabels\Db\LabelMapper;
 use OCA\FilesLabels\Service\AccessChecker;
@@ -98,12 +98,14 @@ class DavPluginIntegrationTest extends TestCase {
 	private function createTestFile(string $name = 'dav_test.txt'): \OCP\Files\File {
 		$file = $this->userFolder->newFile($name, 'test content');
 		$this->createdFiles[] = $file;
+
 		return $file;
 	}
 
 	private function createTestFolder(string $name = 'dav_folder'): Folder {
 		$folder = $this->userFolder->newFolder($name);
 		$this->createdFiles[] = $folder;
+
 		return $folder;
 	}
 

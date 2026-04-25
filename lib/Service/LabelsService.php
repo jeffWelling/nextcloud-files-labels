@@ -50,10 +50,10 @@ class LabelsService {
 	 * Get the maximum labels per user (configurable by admin)
 	 */
 	public function getMaxLabelsPerUser(): int {
-		return (int)$this->config->getAppValue(
+		return (int) $this->config->getAppValue(
 			self::APP_ID,
 			self::CONFIG_KEY_MAX_LABELS,
-			(string)self::DEFAULT_MAX_LABELS_PER_USER
+			(string) self::DEFAULT_MAX_LABELS_PER_USER
 		);
 	}
 

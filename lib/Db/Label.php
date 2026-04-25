@@ -9,8 +9,8 @@ declare(strict_types=1);
 
 namespace OCA\FilesLabels\Db;
 
-use OCP\AppFramework\Db\Entity;
 use DateTime;
+use OCP\AppFramework\Db\Entity;
 
 /**
  * @method int getFileId()

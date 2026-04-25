@@ -63,6 +63,7 @@ class LabelsController extends OCSController {
 
 		try {
 			$label = $this->labelsService->setLabel($fileId, $key, $value);
+
 			return new DataResponse($label->toArray());
 		} catch (NotPermittedException $e) {
 			return new DataResponse(['error' => 'File not found'], Http::STATUS_NOT_FOUND);
@@ -87,6 +88,7 @@ class LabelsController extends OCSController {
 			if (!$deleted) {
 				return new DataResponse(['error' => 'Label not found'], Http::STATUS_NOT_FOUND);
 			}
+
 			return new DataResponse(['success' => true]);
 		} catch (NotPermittedException $e) {
 			return new DataResponse(['error' => 'File not found'], Http::STATUS_NOT_FOUND);

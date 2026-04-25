@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace OCA\FilesLabels\Tests\Integration;
 
+use DateTime;
 use OCA\FilesLabels\Db\Label;
 use OCA\FilesLabels\Db\LabelMapper;
 use OCA\FilesLabels\Listener\UserDeletedListener;
@@ -22,7 +23,6 @@ use OCP\IUserSession;
 use OCP\User\Events\UserDeletedEvent;
 use Psr\Log\LoggerInterface;
 use Test\TestCase;
-use DateTime;
 
 /**
  * Performance tests for user deletion with large numbers of labels.
@@ -181,7 +181,7 @@ class UserDeletionPerformanceTest extends TestCase {
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 
 		$result = $qb->executeQuery();
-		$count = (int)$result->fetchOne();
+		$count = (int) $result->fetchOne();
 		$result->closeCursor();
 
 		return $count;
@@ -324,7 +324,7 @@ class UserDeletionPerformanceTest extends TestCase {
 		$this->assertLessThan(
 			1.0,
 			$deleteDuration,
-			"Deleting 1000 labels should take less than 1 second"
+			'Deleting 1000 labels should take less than 1 second'
 		);
 	}
 
