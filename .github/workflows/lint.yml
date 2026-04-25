@@ -74,8 +74,42 @@ jobs:
       - name: Install xmllint
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
 
-      - name: Validate info.xml
+      - name: Validate info.xml against the Nextcloud apps schema
         run: |
           if [ -f appinfo/info.xml ]; then
-            xmllint --noout appinfo/info.xml
+            xmllint --noout \
+              --schema https://apps.nextcloud.com/schema/apps/info.xsd \
+              appinfo/info.xml
           fi
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    name: npm audit (runtime)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Audit runtime dependencies
+        # Only fail on advisories that affect packages shipped to the browser.
+        # Dev tooling CVEs (webpack/babel/jest/playwright) are tracked separately.
+        run: npm audit --omit=dev --audit-level=high
+
+  composer-audit:
+    runs-on: ubuntu-latest
+    name: composer audit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Audit PHP dependencies
+        run: composer audit --no-interaction
