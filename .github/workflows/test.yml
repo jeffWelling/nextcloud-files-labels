@@ -253,9 +253,13 @@ jobs:
           E2E_PASSWORD: 'e2e-NotAPwnedPass!2026'
 
       - name: Run E2E tests
-        run: |
-          PLAYWRIGHT_BASE_URL=http://localhost:8081 npx playwright test
+        run: npx playwright test
         env:
+          # global-setup.ts navigates to ${NEXTCLOUD_URL}/login directly,
+          # so we have to set NEXTCLOUD_URL too — PLAYWRIGHT_BASE_URL only
+          # affects `use.baseURL` for individual tests.
+          NEXTCLOUD_URL: http://localhost:8081
+          PLAYWRIGHT_BASE_URL: http://localhost:8081
           TEST_PASSWORD: 'e2e-NotAPwnedPass!2026'
           TEST_PASSWORD_2: 'e2e-NotAPwnedPass!2026'
 
