@@ -12,9 +12,11 @@ $finder = PhpCsFixer\Finder::create()
 
 $config = new PhpCsFixer\Config();
 
+// Note: @PSR12 is intentionally NOT enabled — this codebase follows the
+// Nextcloud coding style (tabs for indentation, same-line braces), which
+// conflicts with several @PSR12 rules.
 return $config
     ->setRules([
-        '@PSR12' => true,
         'array_syntax' => ['syntax' => 'short'],
         'blank_line_after_opening_tag' => true,
         'blank_line_before_statement' => ['statements' => ['return']],
@@ -35,7 +37,6 @@ return $config
         'no_whitespace_in_blank_line' => true,
         'ordered_imports' => ['imports_order' => ['class', 'function', 'const']],
         'return_type_declaration' => ['space_before' => 'none'],
-        'single_blank_line_before_namespace' => true,
         'single_quote' => true,
         'trailing_comma_in_multiline' => ['elements' => ['arrays']],
         'trim_array_spaces' => true,
