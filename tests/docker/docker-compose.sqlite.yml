@@ -10,7 +10,9 @@ services:
     ports:
       - "8081:80"
     volumes:
-      - sqlite_data:/var/www/html
+      # No named volume on /var/www/html — image's writable layer is fine for
+      # ephemeral test runs and avoids the "Cannot write into 'apps' directory"
+      # install failure caused by volume-init permissions on GHA runners.
       - ../../:/var/www/html/custom_apps/files_labels:ro
     environment:
       - SQLITE_DATABASE=nextcloud
@@ -23,6 +25,3 @@ services:
       timeout: 5s
       retries: 30
       start_period: 60s
-
-volumes:
-  sqlite_data:

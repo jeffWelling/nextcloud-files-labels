@@ -10,7 +10,7 @@ services:
     ports:
       - "8083:80"
     volumes:
-      - pgsql_nc_data:/var/www/html
+      # See sqlite compose for why /var/www/html has no named volume.
       - ../../:/var/www/html/custom_apps/files_labels:ro
     environment:
       - POSTGRES_HOST=db
@@ -46,5 +46,4 @@ services:
       retries: 10
 
 volumes:
-  pgsql_nc_data:
   pgsql_db_data:
