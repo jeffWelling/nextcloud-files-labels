@@ -68,7 +68,10 @@ test.describe('Bulk Operations', () => {
 		})
 		expect(response.ok()).toBeTruthy()
 		const data = await response.json()
-		expect(data.ocs?.data || {}).toEqual({})
+		// PHP serialises an empty array as `[]` and an empty assoc-array as
+		// `{}` — the controller's empty branch hits the former. Test for
+		// "empty" the same way 2.5 does so both shapes are accepted.
+		expect(Object.keys(data.ocs?.data || {})).toHaveLength(0)
 	})
 
 	test('2.5: Bulk get with non-existent file IDs', async ({ page }) => {
