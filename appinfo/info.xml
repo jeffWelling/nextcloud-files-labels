@@ -38,9 +38,6 @@ Example use cases:
         <php min-version="8.1"/>
         <nextcloud min-version="28" max-version="31"/>
     </dependencies>
-    <scripts>
-        <script>js/files_labels-main.js</script>
-    </scripts>
     <settings>
         <admin>OCA\FilesLabels\Settings\Admin</admin>
     </settings>
