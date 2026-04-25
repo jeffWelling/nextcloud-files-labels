@@ -2,21 +2,43 @@
 # SPDX-FileCopyrightText: 2025 Jeff Welling <real.jeff.welling@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# The Nextcloud apache entrypoint sometimes leaves /var/www/html/apps not
-# writable by www-data on GHA's overlay2 storage driver, causing
-# `occ maintenance:install` to abort with "Cannot write into 'apps' directory".
-# This hook runs after the populate step and before the install, and re-chowns
-# the directories the install needs to touch. Bind-mounted paths
-# (custom_apps/files_labels) are skipped so a read-only mount doesn't fail us.
+# Diagnostic + perm-fixing pre-installation hook for the Nextcloud
+# apache image on GHA's overlay2 storage. The install repeatedly fails
+# with "Cannot write into 'apps' directory" even after a chown -R; this
+# script logs perm state before and after the fix so we can see what's
+# actually happening.
 
-set -eu
+set -u
+
+dump() {
+    label="$1"
+    echo "=== files_labels hook: $label ==="
+    echo "--- /var/www/html (top level) ---"
+    ls -la /var/www/html/ | head -20 || true
+    echo "--- /var/www/html/apps (first 5 entries) ---"
+    ls -la /var/www/html/apps 2>&1 | head -8 || true
+    echo "--- stat /var/www/html/apps ---"
+    stat /var/www/html/apps 2>&1 | head -5 || true
+    echo "--- write test as www-data ---"
+    su -s /bin/sh www-data -c \
+        'test -w /var/www/html/apps && echo "writable=YES" || echo "writable=NO"' \
+        2>&1 || echo "su failed: $?"
+    su -s /bin/sh www-data -c \
+        'touch /var/www/html/apps/.fixperm-test 2>&1 && rm /var/www/html/apps/.fixperm-test 2>&1 && echo "touch=OK" || echo "touch=FAIL"' \
+        2>&1 || true
+}
+
+dump "BEFORE"
 
 for dir in apps config data custom_apps; do
     if [ -d "/var/www/html/$dir" ]; then
-        # `|| true` because custom_apps may contain a :ro bind mount that we
-        # can't (and don't need to) chown.
-        chown -R www-data:www-data "/var/www/html/$dir" 2>/dev/null || true
+        chown -R www-data:www-data "/var/www/html/$dir" 2>&1 \
+            | head -5 || true
+        chmod -R u+rwX "/var/www/html/$dir" 2>&1 \
+            | head -5 || true
     fi
 done
 
-echo "files_labels test hook: re-chowned /var/www/html/{apps,config,data,custom_apps}"
+dump "AFTER"
+
+echo "files_labels hook: done"
