@@ -187,7 +187,7 @@ CREATE TABLE file_labels (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   file_id BIGINT NOT NULL,              -- Nextcloud file ID
   user_id VARCHAR(64) NOT NULL,         -- Nextcloud user ID
-  label_key VARCHAR(255) NOT NULL,      -- Label key (lowercase alphanumeric, .-_)
+  label_key VARCHAR(64) NOT NULL,       -- Label key (lowercase alphanumeric, .-_)
   label_value VARCHAR(255) NOT NULL,    -- Label value (up to 255 chars)
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
@@ -205,7 +205,7 @@ CREATE TABLE file_labels (
 ### Label Key Validation
 
 Pattern: `[a-z0-9_.-]+` (lowercase alphanumeric, dots, dashes, underscores)
-Max length: 255 characters
+Max length: 64 characters
 
 Valid examples:
 - `category`

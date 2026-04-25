@@ -352,7 +352,7 @@ class LabelsIntegrationTest extends TestCase {
 		$file = $this->createTestFile('long_key.txt');
 		$fileId = $file->getId();
 
-		$longKey = str_repeat('a', 256); // Max is 255
+		$longKey = str_repeat('a', 65); // Max is 64
 
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service->setLabel($fileId, $longKey, 'value');

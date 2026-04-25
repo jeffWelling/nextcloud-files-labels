@@ -30,7 +30,8 @@ class LabelsService {
 
 	// Valid label key pattern: lowercase alphanumeric, dots, dashes, underscores
 	private const KEY_PATTERN = '/^[a-z0-9_.-]+$/';
-	private const MAX_KEY_LENGTH = 255;
+	// Must match the `label_key` column width in lib/Migration/Version000100Date20241222000000.php
+	private const MAX_KEY_LENGTH = 64;
 	// Value length limit imposed for UI aesthetics (sidebar display)
 	private const MAX_VALUE_LENGTH = 255;
 
