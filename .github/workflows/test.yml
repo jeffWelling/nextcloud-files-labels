@@ -161,7 +161,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: ['sqlite', 'mysql', 'pgsql']
+        # E2E exercises the UI and OCS HTTP layer — DB engine doesn't matter
+        # there. Cross-DB compatibility is already covered by the PHP × DB
+        # PHPUnit matrix. Keep E2E to sqlite only (cuts ~10 CI minutes/push).
+        database: ['sqlite']
 
     steps:
       - uses: actions/checkout@v4
@@ -184,7 +187,7 @@ jobs:
       - name: Start test environment
         run: |
           docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml up -d
-          PORT=${{ matrix.database == 'sqlite' && '8081' || matrix.database == 'mysql' && '8082' || '8083' }}
+          PORT=8081
 
           # Wait for Nextcloud, probing every 4s and dumping state every 30s
           for i in $(seq 1 90); do
@@ -221,8 +224,7 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          PORT=${{ matrix.database == 'sqlite' && '8081' || matrix.database == 'mysql' && '8082' || '8083' }}
-          PLAYWRIGHT_BASE_URL="http://localhost:$PORT" npx playwright test
+          PLAYWRIGHT_BASE_URL=http://localhost:8081 npx playwright test
 
       - name: Upload test artifacts
         if: failure()
