@@ -71,10 +71,10 @@ class LabelsPlugin extends ServerPlugin {
 		}
 
 		// Collect file IDs
-		$fileIds = [(int)$collection->getId()];
+		$fileIds = [(int) $collection->getId()];
 		foreach ($collection->getChildren() as $child) {
 			if ($child instanceof File || $child instanceof Directory) {
-				$fileIds[] = (int)$child->getId();
+				$fileIds[] = (int) $child->getId();
 			}
 		}
 
@@ -109,7 +109,7 @@ class LabelsPlugin extends ServerPlugin {
 		}
 
 		$propFind->handle(self::PROPERTY_LABELS, function () use ($node) {
-			$fileId = (int)$node->getId();
+			$fileId = (int) $node->getId();
 
 			// Check cache first
 			if (isset($this->cachedLabels[$fileId])) {
@@ -124,6 +124,7 @@ class LabelsPlugin extends ServerPlugin {
 				foreach ($labels as $label) {
 					$result[$label->getLabelKey()] = $label->getLabelValue();
 				}
+
 				// Use explicit flags to escape HTML entities for XML safety
 				return json_encode($result, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 			} catch (\Exception $e) {
@@ -147,7 +148,7 @@ class LabelsPlugin extends ServerPlugin {
 		}
 
 		$propPatch->handle(self::PROPERTY_LABELS, function ($value) use ($node) {
-			$fileId = (int)$node->getId();
+			$fileId = (int) $node->getId();
 
 			// Parse the JSON value
 			$newLabels = json_decode($value, true);
@@ -157,6 +158,7 @@ class LabelsPlugin extends ServerPlugin {
 					'fileId' => $fileId,
 					'value' => $value,
 				]);
+
 				return false;
 			}
 
@@ -181,7 +183,7 @@ class LabelsPlugin extends ServerPlugin {
 					} else {
 						// Add or update
 						if (!isset($currentLabels[$key]) || $currentLabels[$key] !== $value) {
-							$toSet[$key] = (string)$value;
+							$toSet[$key] = (string) $value;
 						}
 					}
 				}
@@ -217,6 +219,7 @@ class LabelsPlugin extends ServerPlugin {
 					'fileId' => $fileId,
 					'error' => $e->getMessage(),
 				]);
+
 				return false;
 			} catch (\InvalidArgumentException $e) {
 				$this->logger->warning('Invalid label data via WebDAV', [
@@ -224,6 +227,7 @@ class LabelsPlugin extends ServerPlugin {
 					'fileId' => $fileId,
 					'error' => $e->getMessage(),
 				]);
+
 				return false;
 			} catch (\OverflowException $e) {
 				$this->logger->warning('Rate limit exceeded via WebDAV', [
@@ -231,6 +235,7 @@ class LabelsPlugin extends ServerPlugin {
 					'fileId' => $fileId,
 					'error' => $e->getMessage(),
 				]);
+
 				return false;
 			} catch (\Exception $e) {
 				$this->logger->error('Failed to update labels via WebDAV', [
@@ -238,6 +243,7 @@ class LabelsPlugin extends ServerPlugin {
 					'fileId' => $fileId,
 					'error' => $e->getMessage(),
 				]);
+
 				return false;
 			}
 		});

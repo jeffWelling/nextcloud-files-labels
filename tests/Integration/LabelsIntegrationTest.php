@@ -111,6 +111,7 @@ class LabelsIntegrationTest extends TestCase {
 	private function createTestFile(string $name = 'test.txt', string $content = 'test content'): File {
 		$file = $this->userFolder->newFile($name, $content);
 		$this->createdFiles[] = $file;
+
 		return $file;
 	}
 
@@ -119,6 +120,7 @@ class LabelsIntegrationTest extends TestCase {
 	 */
 	private function trackLabel(Label $label): Label {
 		$this->createdLabels[] = $label;
+
 		return $label;
 	}
 
@@ -450,7 +452,7 @@ class LabelsIntegrationTest extends TestCase {
 
 		// Simulate concurrent updates by setting the same key multiple times
 		for ($i = 0; $i < 10; $i++) {
-			$this->service->setLabel($fileId, 'counter', (string)$i);
+			$this->service->setLabel($fileId, 'counter', (string) $i);
 		}
 
 		// Final value should be the last one

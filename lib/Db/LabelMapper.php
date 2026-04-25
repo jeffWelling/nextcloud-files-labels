@@ -9,10 +9,10 @@ declare(strict_types=1);
 
 namespace OCA\FilesLabels\Db;
 
+use DateTime;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
-use DateTime;
 
 /**
  * @extends QBMapper<Label>
@@ -105,7 +105,7 @@ class LabelMapper extends QBMapper {
 		$result = $qb->executeQuery();
 		$fileIds = [];
 		while ($row = $result->fetch()) {
-			$fileIds[] = (int)$row['file_id'];
+			$fileIds[] = (int) $row['file_id'];
 		}
 		$result->closeCursor();
 
@@ -122,6 +122,7 @@ class LabelMapper extends QBMapper {
 		if ($existing !== null) {
 			$existing->setLabelValue($value);
 			$existing->setUpdatedAt($now);
+
 			return $this->update($existing);
 		}
 
@@ -145,6 +146,7 @@ class LabelMapper extends QBMapper {
 			return false;
 		}
 		$this->delete($label);
+
 		return true;
 	}
 
@@ -178,7 +180,7 @@ class LabelMapper extends QBMapper {
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 
 		$result = $qb->executeQuery();
-		$count = (int)$result->fetchOne();
+		$count = (int) $result->fetchOne();
 		$result->closeCursor();
 
 		return $count;

@@ -147,6 +147,7 @@ class LabelMapperTest extends TestCase {
 			->willReturnCallback(function ($label) use ($value) {
 				$this->assertEquals($value, $label->getLabelValue());
 				$this->assertInstanceOf(DateTime::class, $label->getUpdatedAt());
+
 				return $label;
 			});
 

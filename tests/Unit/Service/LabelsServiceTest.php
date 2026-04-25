@@ -53,7 +53,7 @@ class LabelsServiceTest extends TestCase {
 		$config = $this->createMock(IConfig::class);
 		$config->method('getAppValue')
 			->with('files_labels', 'max_labels_per_user', '10000')
-			->willReturn((string)$maxLabels);
+			->willReturn((string) $maxLabels);
 
 		return new LabelsService(
 			$this->mapper,

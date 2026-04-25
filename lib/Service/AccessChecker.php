@@ -32,6 +32,7 @@ class AccessChecker {
 	 */
 	public function getCurrentUserId(): ?string {
 		$user = $this->userSession->getUser();
+
 		return $user?->getUID();
 	}
 
@@ -50,6 +51,7 @@ class AccessChecker {
 			$node = $this->rootFolder
 				->getUserFolder($userId)
 				->getFirstNodeById($fileId);
+
 			return $node !== null;
 		} catch (\Exception $e) {
 			return false;
@@ -77,6 +79,7 @@ class AccessChecker {
 					return true;
 				}
 			}
+
 			return false;
 		} catch (\Exception $e) {
 			return false;

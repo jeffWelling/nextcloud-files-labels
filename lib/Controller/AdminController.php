@@ -42,10 +42,10 @@ class AdminController extends Controller {
 	#[AuthorizedAdminSetting(settings: \OCA\FilesLabels\Settings\Admin::class)]
 	public function getSettings(): JSONResponse {
 		return new JSONResponse([
-			'maxLabelsPerUser' => (int)$this->config->getAppValue(
+			'maxLabelsPerUser' => (int) $this->config->getAppValue(
 				self::APP_ID,
 				self::CONFIG_KEY_MAX_LABELS,
-				(string)self::DEFAULT_MAX_LABELS
+				(string) self::DEFAULT_MAX_LABELS
 			),
 		]);
 	}
@@ -64,16 +64,16 @@ class AdminController extends Controller {
 			);
 		}
 
-		$intValue = (int)$value;
+		$intValue = (int) $value;
 
 		if ($intValue < self::MIN_MAX_LABELS || $intValue > self::MAX_MAX_LABELS) {
 			return new JSONResponse(
-				['error' => "Value must be between " . self::MIN_MAX_LABELS . " and " . self::MAX_MAX_LABELS],
+				['error' => 'Value must be between ' . self::MIN_MAX_LABELS . ' and ' . self::MAX_MAX_LABELS],
 				Http::STATUS_BAD_REQUEST
 			);
 		}
 
-		$this->config->setAppValue(self::APP_ID, self::CONFIG_KEY_MAX_LABELS, (string)$intValue);
+		$this->config->setAppValue(self::APP_ID, self::CONFIG_KEY_MAX_LABELS, (string) $intValue);
 
 		$this->logger->info('Admin updated max labels per user', [
 			'app' => self::APP_ID,

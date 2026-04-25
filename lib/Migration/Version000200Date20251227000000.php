@@ -33,6 +33,7 @@ class Version000200Date20251227000000 extends SimpleMigrationStep {
 			// DELETE FROM file_labels WHERE file_id = ? benefits from this
 			if (!$table->hasIndex('file_labels_file_id')) {
 				$table->addIndex(['file_id'], 'file_labels_file_id');
+
 				return $schema;
 			}
 		}
