@@ -237,6 +237,17 @@ jobs:
           CONTAINER=files_labels_test_${{ matrix.database }}
           docker exec -u www-data $CONTAINER php occ app:enable files_labels
 
+      - name: Create test users for Playwright
+        # global-setup.ts logs in as testuser1/testuser2 — they don't exist
+        # on a fresh install. Create them with the same passwords the setup
+        # script expects.
+        run: |
+          CONTAINER=files_labels_test_${{ matrix.database }}
+          for user in testuser1 testuser2; do
+            docker exec --env OC_PASS=testpass123 -u www-data $CONTAINER \
+              php occ user:add --password-from-env --display-name "$user" "$user"
+          done
+
       - name: Run E2E tests
         run: |
           PLAYWRIGHT_BASE_URL=http://localhost:8081 npx playwright test
