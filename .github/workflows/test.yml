@@ -184,9 +184,35 @@ jobs:
       - name: Start test environment
         run: |
           docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml up -d
+          PORT=${{ matrix.database == 'sqlite' && '8081' || matrix.database == 'mysql' && '8082' || '8083' }}
 
-          # Wait for Nextcloud to be ready (cold image init can take >2 min on first boot)
-          timeout 360 bash -c 'until curl -sf http://localhost:808${{ matrix.database == 'sqlite' && '1' || matrix.database == 'mysql' && '2' || '3' }}/status.php; do sleep 2; done'
+          # Wait for Nextcloud, probing every 4s and dumping state every 30s
+          for i in $(seq 1 90); do
+            if curl -sf "http://localhost:$PORT/status.php" > /dev/null 2>&1; then
+              echo "Nextcloud ready after $((i*4))s"
+              curl -s "http://localhost:$PORT/status.php"; echo
+              exit 0
+            fi
+            if [ $((i % 8)) -eq 0 ]; then
+              echo "=== waited ~$((i*4))s, container state: ==="
+              docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml ps
+              echo "=== curl probe: ==="
+              curl -s -o /tmp/body -w "HTTP %{http_code} - size %{size_download}B\n" "http://localhost:$PORT/status.php" || true
+              echo "=== body (first 500B): ==="
+              head -c 500 /tmp/body 2>/dev/null; echo
+            fi
+            sleep 4
+          done
+          echo "::error::Nextcloud never returned 200 from /status.php within 360s"
+          exit 1
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          echo "=== docker compose ps ==="
+          docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml ps -a
+          echo "=== docker compose logs ==="
+          docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml logs --tail=400
 
       - name: Enable app
         run: |
