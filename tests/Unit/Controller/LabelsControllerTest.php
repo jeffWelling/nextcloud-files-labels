@@ -303,6 +303,29 @@ class LabelsControllerTest extends TestCase {
 		$this->assertEquals('Labels must be an object', $data['error']);
 	}
 
+	public function testBulkSetTooManyLabels(): void {
+		$fileId = 123;
+		$labels = [];
+		for ($i = 0; $i <= 1000; $i++) {
+			$labels["key$i"] = "value$i";
+		}
+
+		$this->request->method('getParam')
+			->with('labels', [])
+			->willReturn($labels);
+
+		$this->service->expects($this->never())
+			->method('setLabels');
+
+		$response = $this->controller->bulkSet($fileId);
+
+		$this->assertEquals(Http::STATUS_BAD_REQUEST, $response->getStatus());
+
+		$data = $response->getData();
+		$this->assertArrayHasKey('error', $data);
+		$this->assertEquals('Too many labels (max 1000 per request)', $data['error']);
+	}
+
 	public function testBulkSetNotPermitted(): void {
 		$fileId = 123;
 		$labels = ['key' => 'value'];

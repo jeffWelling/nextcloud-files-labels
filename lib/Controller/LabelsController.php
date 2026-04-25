@@ -148,6 +148,11 @@ class LabelsController extends OCSController {
 			return new DataResponse(['error' => 'Labels must be an object'], Http::STATUS_BAD_REQUEST);
 		}
 
+		// Mirrors the per-request cap on bulk GET to bound validation/transaction cost
+		if (count($labels) > 1000) {
+			return new DataResponse(['error' => 'Too many labels (max 1000 per request)'], Http::STATUS_BAD_REQUEST);
+		}
+
 		try {
 			$result = $this->labelsService->setLabels($fileId, $labels);
 
