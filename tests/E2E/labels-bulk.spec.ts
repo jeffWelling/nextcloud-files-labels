@@ -62,7 +62,7 @@ test.describe('Bulk Operations', () => {
 	})
 
 	test('2.4: Bulk get with empty file list', async ({ page }) => {
-		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk`, {
+		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk?format=json`, {
 			headers: { 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 			data: { fileIds: [] }
 		})
@@ -72,7 +72,7 @@ test.describe('Bulk Operations', () => {
 	})
 
 	test('2.5: Bulk get with non-existent file IDs', async ({ page }) => {
-		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk`, {
+		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk?format=json`, {
 			headers: { 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 			data: { fileIds: [999999998, 999999999] }
 		})
