@@ -14,6 +14,9 @@ services:
       # ephemeral test runs and avoids the "Cannot write into 'apps' directory"
       # install failure caused by volume-init permissions on GHA runners.
       - ../../:/var/www/html/custom_apps/files_labels:ro
+      # Pre-install hook: re-chown apps/config/data so occ maintenance:install
+      # can write to them under GHA's overlay2 storage.
+      - ./hooks/pre-installation:/docker-entrypoint-hooks.d/pre-installation:ro
     environment:
       - SQLITE_DATABASE=nextcloud
       - NEXTCLOUD_ADMIN_USER=admin

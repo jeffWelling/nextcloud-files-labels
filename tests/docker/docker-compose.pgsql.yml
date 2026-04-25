@@ -10,8 +10,9 @@ services:
     ports:
       - "8083:80"
     volumes:
-      # See sqlite compose for why /var/www/html has no named volume.
+      # See sqlite compose for why /var/www/html has no named volume + hooks.
       - ../../:/var/www/html/custom_apps/files_labels:ro
+      - ./hooks/pre-installation:/docker-entrypoint-hooks.d/pre-installation:ro
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_DB=nextcloud
