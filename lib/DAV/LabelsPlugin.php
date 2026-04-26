@@ -153,10 +153,14 @@ class LabelsPlugin extends ServerPlugin {
 			// Parse the JSON value
 			$newLabels = json_decode($value, true);
 			if (!is_array($newLabels)) {
+				// Log a length and a short preview rather than the raw payload —
+				// it can be attacker-controlled and arbitrarily large.
+				$valueString = (string) $value;
 				$this->logger->warning('Invalid labels JSON received via WebDAV', [
 					'app' => 'files_labels',
 					'fileId' => $fileId,
-					'value' => $value,
+					'value_length' => strlen($valueString),
+					'value_preview' => substr($valueString, 0, 64),
 				]);
 
 				return false;

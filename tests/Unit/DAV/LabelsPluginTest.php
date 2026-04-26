@@ -15,14 +15,18 @@ use OCA\FilesLabels\DAV\LabelsPlugin;
 use OCA\FilesLabels\Db\Label;
 use OCA\FilesLabels\Service\LabelsService;
 use OCP\Files\NotPermittedException;
+use Psr\Log\LoggerInterface;
 use Sabre\DAV\PropFind;
+use Sabre\DAV\PropPatch;
 use Sabre\DAV\Server;
+use Sabre\DAV\Tree;
 use Sabre\DAV\Xml\Service as XmlService;
 use Test\TestCase;
 
 class LabelsPluginTest extends TestCase {
 	private LabelsPlugin $plugin;
 	private LabelsService $service;
+	private LoggerInterface $logger;
 	private Server $server;
 	private XmlService $xmlService;
 
@@ -30,13 +34,14 @@ class LabelsPluginTest extends TestCase {
 		parent::setUp();
 
 		$this->service = $this->createMock(LabelsService::class);
+		$this->logger = $this->createMock(LoggerInterface::class);
 		$this->server = $this->createMock(Server::class);
 		$this->xmlService = $this->createMock(XmlService::class);
 		$this->xmlService->namespaceMap = [];
 
 		$this->server->xml = $this->xmlService;
 
-		$this->plugin = new LabelsPlugin($this->service);
+		$this->plugin = new LabelsPlugin($this->service, $this->logger);
 	}
 
 	public function testInitialize(): void {
@@ -306,5 +311,51 @@ class LabelsPluginTest extends TestCase {
 			});
 
 		$this->plugin->handleGetProperties($propFind, $file);
+	}
+
+	public function testHandleSetPropertiesLogsRedactedPayloadOnInvalidJson(): void {
+		// 200-byte garbage payload that's not valid JSON. The hook should log
+		// length + a 64-byte preview, NEVER the full body.
+		$invalidPayload = str_repeat('A', 200) . '<not-json>';
+		$expectedLength = strlen($invalidPayload);
+
+		$file = $this->createMock(File::class);
+		$file->method('getId')
+			->willReturn(123);
+
+		$tree = $this->getMockBuilder(Tree::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$tree->method('getNodeForPath')
+			->willReturn($file);
+		$this->server->tree = $tree;
+
+		$this->plugin->initialize($this->server);
+
+		$propPatch = $this->createMock(PropPatch::class);
+		$propPatch->expects($this->once())
+			->method('handle')
+			->willReturnCallback(function ($property, $callback) use ($invalidPayload) {
+				$this->assertEquals(LabelsPlugin::PROPERTY_LABELS, $property);
+				$result = $callback($invalidPayload);
+				$this->assertFalse($result);
+			});
+
+		$capturedContext = null;
+		$this->logger->expects($this->once())
+			->method('warning')
+			->willReturnCallback(function ($message, $context) use (&$capturedContext) {
+				$capturedContext = $context;
+			});
+
+		$this->plugin->handleSetProperties('/some/path.txt', $propPatch);
+
+		$this->assertIsArray($capturedContext);
+		$this->assertArrayNotHasKey('value', $capturedContext, 'raw payload must not be logged');
+		$this->assertArrayHasKey('value_length', $capturedContext);
+		$this->assertArrayHasKey('value_preview', $capturedContext);
+		$this->assertSame($expectedLength, $capturedContext['value_length']);
+		$this->assertSame(64, strlen($capturedContext['value_preview']));
+		$this->assertSame(substr($invalidPayload, 0, 64), $capturedContext['value_preview']);
 	}
 }
