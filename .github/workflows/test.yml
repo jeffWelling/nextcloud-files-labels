@@ -161,7 +161,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: ['sqlite', 'mysql', 'pgsql']
+        # E2E exercises the UI and OCS HTTP layer — DB engine doesn't matter
+        # there. Cross-DB compatibility is already covered by the PHP × DB
+        # PHPUnit matrix. Keep E2E to sqlite only (cuts ~10 CI minutes/push).
+        database: ['sqlite']
 
     steps:
       - uses: actions/checkout@v4
@@ -184,19 +187,81 @@ jobs:
       - name: Start test environment
         run: |
           docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml up -d
+          PORT=8081
 
-          # Wait for Nextcloud to be ready
-          timeout 120 bash -c 'until curl -sf http://localhost:808${{ matrix.database == 'sqlite' && '1' || matrix.database == 'mysql' && '2' || '3' }}/status.php; do sleep 2; done'
+          # Workaround: Docker creates the bind-mount parent
+          # /var/www/html/custom_apps as root:root, and Nextcloud's apps_paths
+          # default expects custom_apps writable by www-data. The pre-install
+          # hook can't fix this — it runs as www-data and gets "Operation not
+          # permitted" on chown. So we exec as root from the workflow.
+          # Wait briefly for the container to be ready for exec, then chown.
+          for i in 1 2 3 4 5; do
+            if docker exec --user root files_labels_test_${{ matrix.database }} \
+                  chown www-data:www-data /var/www/html/custom_apps 2>/dev/null; then
+              echo "Fixed custom_apps ownership after ${i} attempt(s)"
+              break
+            fi
+            sleep 2
+          done
+
+          # Wait for Nextcloud, probing every 4s and dumping state every 30s
+          for i in $(seq 1 90); do
+            if curl -sf "http://localhost:$PORT/status.php" > /dev/null 2>&1; then
+              echo "Nextcloud ready after $((i*4))s"
+              curl -s "http://localhost:$PORT/status.php"; echo
+              exit 0
+            fi
+            if [ $((i % 8)) -eq 0 ]; then
+              echo "=== waited ~$((i*4))s, container state: ==="
+              docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml ps
+              echo "=== curl probe: ==="
+              curl -s -o /tmp/body -w "HTTP %{http_code} - size %{size_download}B\n" "http://localhost:$PORT/status.php" || true
+              echo "=== body (first 500B): ==="
+              head -c 500 /tmp/body 2>/dev/null; echo
+            fi
+            sleep 4
+          done
+          echo "::error::Nextcloud never returned 200 from /status.php within 360s"
+          exit 1
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          echo "=== docker compose ps ==="
+          docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml ps -a
+          echo "=== docker compose logs ==="
+          docker compose -f tests/docker/docker-compose.${{ matrix.database }}.yml logs --tail=400
 
       - name: Enable app
         run: |
           CONTAINER=files_labels_test_${{ matrix.database }}
           docker exec -u www-data $CONTAINER php occ app:enable files_labels
 
-      - name: Run E2E tests
+      - name: Create test users for Playwright
+        # global-setup.ts logs in as testuser1/testuser2 — they don't exist
+        # on a fresh install. The default `testpass123` is in HIBP's
+        # compromised list and Nextcloud refuses to create accounts with it,
+        # so use a unique passphrase and forward the same value to Playwright
+        # via TEST_PASSWORD / TEST_PASSWORD_2 below.
         run: |
-          PORT=${{ matrix.database == 'sqlite' && '8081' || matrix.database == 'mysql' && '8082' || '8083' }}
-          PLAYWRIGHT_BASE_URL="http://localhost:$PORT" npx playwright test
+          CONTAINER=files_labels_test_${{ matrix.database }}
+          for user in testuser1 testuser2; do
+            docker exec --env OC_PASS="${E2E_PASSWORD}" -u www-data $CONTAINER \
+              php occ user:add --password-from-env --display-name "$user" "$user"
+          done
+        env:
+          E2E_PASSWORD: 'e2e-NotAPwnedPass!2026'
+
+      - name: Run E2E tests
+        run: npx playwright test
+        env:
+          # global-setup.ts navigates to ${NEXTCLOUD_URL}/login directly,
+          # so we have to set NEXTCLOUD_URL too — PLAYWRIGHT_BASE_URL only
+          # affects `use.baseURL` for individual tests.
+          NEXTCLOUD_URL: http://localhost:8081
+          PLAYWRIGHT_BASE_URL: http://localhost:8081
+          TEST_PASSWORD: 'e2e-NotAPwnedPass!2026'
+          TEST_PASSWORD_2: 'e2e-NotAPwnedPass!2026'
 
       - name: Upload test artifacts
         if: failure()

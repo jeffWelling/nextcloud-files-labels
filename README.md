@@ -108,7 +108,7 @@ Labels are exposed as `{http://nextcloud.org/ns}labels` property:
 
 **Keys:**
 - Must match pattern: `[a-z0-9_.-]+` (lowercase letters, numbers, underscores, dots, hyphens)
-- Maximum length: 255 characters
+- Maximum length: 64 characters
 
 **Values:**
 - Any UTF-8 string

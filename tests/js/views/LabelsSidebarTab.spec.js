@@ -310,7 +310,7 @@ describe('LabelsSidebarTab', () => {
 	})
 
 	describe('Input Validation', () => {
-		it('has maxlength of 255 on key input', async () => {
+		it('has maxlength of 64 on key input', async () => {
 			axios.get.mockResolvedValue({ data: { ocs: { data: {} } } })
 
 			wrapper = shallowMount(LabelsSidebarTab, {
@@ -322,7 +322,7 @@ describe('LabelsSidebarTab', () => {
 			await wrapper.vm.$nextTick()
 
 			const keyInput = wrapper.find('input[placeholder="Key"]')
-			expect(keyInput.attributes('maxlength')).toBe('255')
+			expect(keyInput.attributes('maxlength')).toBe('64')
 		})
 
 		it('has maxlength of 255 on value input', async () => {

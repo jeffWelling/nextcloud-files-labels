@@ -62,17 +62,20 @@ test.describe('Bulk Operations', () => {
 	})
 
 	test('2.4: Bulk get with empty file list', async ({ page }) => {
-		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk`, {
+		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk?format=json`, {
 			headers: { 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 			data: { fileIds: [] }
 		})
 		expect(response.ok()).toBeTruthy()
 		const data = await response.json()
-		expect(data.ocs?.data || {}).toEqual({})
+		// PHP serialises an empty array as `[]` and an empty assoc-array as
+		// `{}` — the controller's empty branch hits the former. Test for
+		// "empty" the same way 2.5 does so both shapes are accepted.
+		expect(Object.keys(data.ocs?.data || {})).toHaveLength(0)
 	})
 
 	test('2.5: Bulk get with non-existent file IDs', async ({ page }) => {
-		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk`, {
+		const response = await page.request.post(`${config.baseUrl}/ocs/v2.php/apps/files_labels/api/v1/labels/bulk?format=json`, {
 			headers: { 'OCS-APIRequest': 'true', 'Content-Type': 'application/json' },
 			data: { fileIds: [999999998, 999999999] }
 		})

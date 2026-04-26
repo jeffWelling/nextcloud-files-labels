@@ -240,10 +240,10 @@ class LabelsServiceTest extends TestCase {
 		$this->accessChecker->method('getCurrentUserId')
 			->willReturn('testuser');
 
-		$longKey = str_repeat('a', 256);
+		$longKey = str_repeat('a', 65);
 
 		$this->expectException(\InvalidArgumentException::class);
-		$this->expectExceptionMessage('Label key cannot exceed 255 characters');
+		$this->expectExceptionMessage('Label key cannot exceed 64 characters');
 
 		$this->service->setLabel(123, $longKey, 'value');
 	}

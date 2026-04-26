@@ -57,7 +57,7 @@
 							:placeholder="t('files_labels', 'Key')"
 							class="label-input"
 							required
-							maxlength="255"
+							maxlength="64"
 							:disabled="saving">
 					</div>
 					<div class="form-row">

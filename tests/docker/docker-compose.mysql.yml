@@ -10,8 +10,9 @@ services:
     ports:
       - "8082:80"
     volumes:
-      - mysql_nc_data:/var/www/html
+      # See sqlite compose for why /var/www/html has no named volume + hooks.
       - ../../:/var/www/html/custom_apps/files_labels:ro
+      - ./hooks/pre-installation:/docker-entrypoint-hooks.d/pre-installation:ro
     environment:
       - MYSQL_HOST=db
       - MYSQL_DATABASE=nextcloud
@@ -47,5 +48,4 @@ services:
       retries: 10
 
 volumes:
-  mysql_nc_data:
   mysql_db_data:
