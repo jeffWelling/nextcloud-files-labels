@@ -26,13 +26,13 @@
   "dependencies": {
     "@nextcloud/auth": "^2.4.0",
     "@nextcloud/axios": "^2.5.1",
-    "@nextcloud/dialogs": "^5.3.7",
+    "@nextcloud/dialogs": "^7.4.0",
     "@nextcloud/event-bus": "^3.3.1",
     "@nextcloud/initial-state": "^2.2.0",
     "@nextcloud/l10n": "^3.1.0",
     "@nextcloud/router": "^3.0.1",
-    "@nextcloud/vue": "^9.0.0",
-    "vue": "^2.7.16",
+    "@nextcloud/vue": "^9.8.2",
+    "vue": "^3.5.39",
     "vue-material-design-icons": "^5.3.0"
   },
   "devDependencies": {
